@@ -241,6 +241,7 @@ export type SecuritySettings = {
   security_alerts: boolean;
   two_step_verification: boolean;
   is_pin_enabled: boolean;
+  is_totp_enabled: boolean;
   created_at?: string;
   updated_at?: string;
 };
@@ -254,7 +255,7 @@ export function useSecuritySettings() {
       const { data, error } = await supabase
         .from('security_settings')
         .select(
-          'user_id, security_alerts, two_step_verification, is_pin_enabled, created_at, updated_at'
+          'user_id, security_alerts, two_step_verification, is_pin_enabled, is_totp_enabled, created_at, updated_at'
         )
         .eq('user_id', user!.id)
         .maybeSingle();

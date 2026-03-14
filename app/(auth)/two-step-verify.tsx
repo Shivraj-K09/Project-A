@@ -24,7 +24,7 @@ import { useRouter, Stack } from 'expo-router';
 import { useColorScheme } from 'nativewind';
 import { useState, useRef, useEffect } from 'react';
 import * as Haptics from 'expo-haptics';
-import { useSecurityVerificationData, useUserProfile } from '@/hooks/use-user';
+import { useSecuritySettings, useUserProfile } from '@/hooks/use-user';
 import { useToast } from '@/components/ui/toast';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/auth-context';
@@ -40,7 +40,7 @@ export default function TwoStepVerifyScreen() {
   const { toast } = useToast();
   const { markTwoStepVerified } = useAuth();
 
-  const { data: settings, isLoading: settingsLoading } = useSecurityVerificationData();
+  const { data: settings, isLoading: settingsLoading } = useSecuritySettings();
   const { data: profile, isLoading: profileLoading } = useUserProfile();
 
   const [verifyStep, setVerifyStep] = useState<'main' | 'pin' | 'totp' | 'backup'>('main');

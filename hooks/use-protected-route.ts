@@ -11,7 +11,7 @@ import { useEffect } from 'react';
  */
 export function useProtectedRoute() {
   const { isAuthenticated, isLoading, requiresTwoStepVerification, isTwoStepVerified } = useAuth();
-  const segments = useSegments();
+  const segments = useSegments() as string[];
 
   useEffect(() => {
     if (isLoading) return;
