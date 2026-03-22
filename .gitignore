@@ -45,6 +45,9 @@ expo-env.d.ts
 .claude
 android
 ios
+
 .agent
 .agents
 skills-lock.json
+google-services.json
+@google-services.json
