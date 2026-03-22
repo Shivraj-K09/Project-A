@@ -1,7 +1,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Text } from '@/components/ui/text';
 import { useUserProfile } from '@/hooks/use-user';
-import { Link, useRouter } from 'expo-router';
+import { Link, type Href } from 'expo-router';
 import {
   ActivityIndicator,
   View,
@@ -14,73 +14,68 @@ import { Input } from '@/components/ui/input';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { formatPhoneNumber, cn } from '@/lib/utils';
 import { useMemo, useState, memo } from 'react';
+import { useStableNavigate } from '@/lib/use-stable-navigate';
 import {
-  ShieldCheck,
-  Lock,
-  Bell,
-  MessageSquare,
-  Monitor,
-  LifeBuoy,
-  UserCircle,
-  ChevronRight,
-  LogOut,
-  Search,
-  Settings,
-  Edit2,
-} from 'lucide-react-native';
-import { useColorScheme } from 'nativewind';
-import { useThemeStore, useAppTheme } from '@/store/theme-store';
+  buildAccountMenuFromDirectory,
+  searchSettingsDirectory,
+  type SettingsDirectoryEntry,
+} from '@/lib/settings-directory';
+import { ChevronRight, Search, Edit2 } from 'lucide-react-native';
+import { useAppTheme } from '@/store/theme-store';
 
 interface MenuRowProps {
   icon: any;
   title: string;
   subtitle: string;
-  href?: string;
-  isLast?: boolean;
+  href?: Href;
   destructive?: boolean;
+  onNavigate: (href: Href) => void;
 }
 
-const MenuRow = memo(({ icon: Icon, title, subtitle, href, isLast, destructive }: MenuRowProps) => {
-  const { brandColor, isDark } = useAppTheme();
-  const router = useRouter();
+const MenuRow = memo(
+  ({ icon: Icon, title, subtitle, href, destructive, onNavigate }: MenuRowProps) => {
+    const { brandColor, isDark } = useAppTheme();
 
-  return (
-    <TouchableOpacity
-      activeOpacity={0.7}
-      onPress={() => href && router.push(href as any)}
-      className={cn(
-        'flex-row items-center bg-background px-5 py-3.5',
-        !isLast && 'border-b border-border/5'
-      )}>
-      <View
-        className={cn(
-          'mr-3.5 h-9 w-9 items-center justify-center rounded-lg',
-          destructive ? 'bg-destructive/10' : 'bg-brand/5'
-        )}>
-        <Icon size={18} color={destructive ? '#ef4444' : brandColor} strokeWidth={2} />
-      </View>
-
-      <View className="flex-1">
-        <Text
+    return (
+      <View className="px-5">
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => href && onNavigate(href)}
           className={cn(
-            'text-[15px] font-semibold',
-            destructive ? 'text-destructive' : 'text-foreground'
+            'flex-row items-center rounded-xl border border-border bg-background px-5 py-5'
           )}>
-          {title}
-        </Text>
-        <Text className="mt-0.5 text-[11px] font-medium text-muted-foreground">{subtitle}</Text>
-      </View>
+          <View
+            className={cn(
+              'mr-3.5 h-9 w-9 items-center justify-center rounded-lg',
+              destructive ? 'bg-destructive/10' : 'bg-brand/5'
+            )}>
+            <Icon size={18} color={destructive ? '#ef4444' : brandColor} strokeWidth={2} />
+          </View>
 
-      {!destructive && <ChevronRight size={14} color={isDark ? '#27272a' : '#d4d4d8'} />}
-    </TouchableOpacity>
-  );
-});
+          <View className="flex-1">
+            <Text
+              className={cn(
+                'text-[15px] font-semibold',
+                destructive ? 'text-destructive' : 'text-foreground'
+              )}>
+              {title}
+            </Text>
+            <Text className="mt-0.5 text-[11px] font-medium text-muted-foreground">{subtitle}</Text>
+          </View>
+
+          {!destructive && <ChevronRight size={14} color={isDark ? '#27272a' : '#d4d4d8'} />}
+        </TouchableOpacity>
+      </View>
+    );
+  }
+);
 
 export default function AccountScreen() {
   const insets = useSafeAreaInsets();
   const { brandColor, isDark } = useAppTheme();
   const { data: profile, isLoading } = useUserProfile();
   const [searchQuery, setSearchQuery] = useState('');
+  const stableNavigate = useStableNavigate();
 
   const { username, initial, phone } = useMemo(
     () => ({
@@ -91,84 +86,14 @@ export default function AccountScreen() {
     [profile]
   );
 
-  const SETTINGS_DATA = [
-    {
-      title: 'Security & Privacy',
-      items: [
-        {
-          icon: ShieldCheck,
-          title: 'Privacy',
-          subtitle: 'Last seen, status, visibility',
-          id: 'privacy',
-          href: '/privacy-settings',
-        },
-        {
-          icon: Lock,
-          title: 'Security',
-          subtitle: 'Biometric lock, device sessions',
-          id: 'security',
-          href: '/security-settings',
-        },
-      ],
-    },
-    {
-      title: 'App Settings',
-      items: [
-        {
-          icon: Bell,
-          title: 'Notifications',
-          subtitle: 'Message alerts, quiet hours',
-          id: 'notif',
-          href: '/notification-settings',
-        },
-        {
-          icon: MessageSquare,
-          title: 'Chats & Media',
-          subtitle: 'Auto-download, wallpaper',
-          id: 'chat',
-          href: '/chat-settings',
-        },
-        {
-          icon: Monitor,
-          title: 'Appearance',
-          subtitle: 'Dark mode, app language',
-          id: 'app',
-          href: '/appearance-settings',
-        },
-      ],
-    },
-    {
-      title: 'Help & Management',
-      items: [
-        {
-          icon: LifeBuoy,
-          title: 'Help & Support',
-          subtitle: 'Report a bug, terms of service',
-          id: 'help',
-          href: '/support',
-        },
-        {
-          icon: UserCircle,
-          title: 'Account Center',
-          subtitle: 'Delete account, personal data',
-          id: 'account',
-          href: '/account-management',
-        },
-      ],
-    },
-  ];
+  const menuSections = useMemo(() => buildAccountMenuFromDirectory(), []);
 
-  const filteredData = useMemo(() => {
-    if (!searchQuery) return SETTINGS_DATA;
-    const query = searchQuery.toLowerCase();
-    return SETTINGS_DATA.map((section) => ({
-      ...section,
-      items: section.items.filter(
-        (item) =>
-          item.title.toLowerCase().includes(query) || item.subtitle.toLowerCase().includes(query)
-      ),
-    })).filter((section) => section.items.length > 0);
-  }, [searchQuery]);
+  const searchResults = useMemo(() => searchSettingsDirectory(searchQuery), [searchQuery]);
+
+  const isSearching = Boolean(searchQuery.trim());
+
+  const subtitleForSearch = (entry: SettingsDirectoryEntry) =>
+    entry.searchContext ? `${entry.subtitle} · ${entry.searchContext}` : entry.subtitle;
 
   return (
     <View className="flex-1 bg-background">
@@ -203,7 +128,7 @@ export default function AccountScreen() {
             <Link href="/profile-details" asChild>
               <TouchableOpacity
                 activeOpacity={0.8}
-                className="flex-row items-center rounded-xl border border-brand/5 bg-brand/5 p-4">
+                className="flex-row items-center rounded-xl border border-border bg-brand/15 p-4">
                 <View className="relative">
                   <Avatar
                     alt={username}
@@ -233,11 +158,11 @@ export default function AccountScreen() {
         </View>
 
         <View className="px-5 pb-3 pt-2">
-          <View className="h-11 flex-row items-center rounded-xl border border-border/10 bg-muted/50 px-4">
+          <View className="h-12 flex-row items-center rounded-xl border border-border bg-muted/50 px-4">
             <Search size={16} color="#71717a" />
             <Input
-              placeholder="Search...."
-              className="ml-1 h-10 flex-1 border-0 !bg-transparent text-[14px] font-medium shadow-none"
+              placeholder="Search Settings..."
+              className="ml-1 h-12 flex-1 border-0 !bg-transparent text-[14px] font-medium shadow-none"
               placeholderTextColor="#a1a1aa"
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -252,27 +177,49 @@ export default function AccountScreen() {
         </View>
 
         <View className="mt-2">
-          {filteredData.map((section) => (
-            <View key={section.title} className="mb-4">
+          {isSearching ? (
+            <View className="mb-4">
               <Text className="px-5 py-2 text-[10px] font-bold uppercase tracking-wider text-brand">
-                {section.title}
+                Results
               </Text>
-              <View className="bg-background">
-                {section.items.map((item, index) => (
+              <View className="flex flex-col gap-2 bg-background">
+                {searchResults.map((item) => (
                   <MenuRow
                     key={item.id}
                     icon={item.icon}
                     title={item.title}
-                    subtitle={item.subtitle}
+                    subtitle={subtitleForSearch(item)}
                     href={item.href}
-                    isLast={index === section.items.length - 1}
+                    destructive={item.destructive}
+                    onNavigate={stableNavigate}
                   />
                 ))}
               </View>
             </View>
-          ))}
+          ) : (
+            menuSections.map((section) => (
+              <View key={section.title} className="mb-4">
+                <Text className="px-5 py-2 text-[10px] font-bold uppercase tracking-wider text-brand">
+                  {section.title}
+                </Text>
+                <View className="flex flex-col gap-2 bg-background">
+                  {section.items.map((item) => (
+                    <MenuRow
+                      key={item.id}
+                      icon={item.icon}
+                      title={item.title}
+                      subtitle={item.subtitle}
+                      href={item.href}
+                      destructive={item.destructive}
+                      onNavigate={stableNavigate}
+                    />
+                  ))}
+                </View>
+              </View>
+            ))
+          )}
 
-          {!searchQuery && (
+          {!isSearching && (
             <View className="mb-6 mt-8 items-center">
               <Text className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground opacity-30">
                 Version 1.0.0
@@ -281,7 +228,7 @@ export default function AccountScreen() {
           )}
         </View>
 
-        {filteredData.length === 0 && searchQuery && (
+        {isSearching && searchResults.length === 0 && (
           <View className="items-center justify-center px-10 pt-20">
             <Text className="font-bold text-muted-foreground">No results found</Text>
           </View>

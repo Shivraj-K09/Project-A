@@ -98,20 +98,8 @@ export default function LoginScreen() {
         console.log('[Auth] Supabase session created for:', data.user?.email);
       }
 
-      // ─── CHECK TWO-STEP VERIFICATION ─────────────────────
-      const { data: settings } = await supabase
-        .from('security_settings')
-        .select('two_step_verification')
-        .eq('user_id', data.user!.id)
-        .maybeSingle();
-
-      if (settings?.two_step_verification) {
-        // Redirect to 2FA verification screen
-        router.replace('/(auth)/two-step-verify');
-      } else {
-        // Proceed with normal flow
-        router.replace('/(auth)/phone-setup');
-      }
+      // Proceed with normal flow - index.tsx will decide if phone setup is needed
+      router.replace('/');
     } catch (err: any) {
       // Handle specific Google Sign-In errors
       if (err?.code === 'SIGN_IN_CANCELLED') {
@@ -127,7 +115,19 @@ export default function LoginScreen() {
         );
       } else {
         console.error('[Auth] Google login error:', err);
-        Alert.alert('Sign in failed', 'Something went wrong. Please try again.');
+        const raw = String(err?.message ?? '');
+        // Rare: auth trigger inserting public.users can fail on phone uniqueness before phone-setup.
+        if (/phone|23505|unique|duplicate|violat/i.test(raw)) {
+          Alert.alert(
+            'Sign in blocked',
+            'Supabase rejected creating/updating your profile (often phone uniqueness). For delete-and-reuse flows, apply migrations `20250321100000`, `20250322100000` (partial phone unique), and `20250323100000` (check_phone). The “number already registered” message usually comes from profile setup after Google sign-in, not this button.'
+          );
+        } else {
+          Alert.alert(
+            'Sign in failed',
+            __DEV__ && raw ? raw : 'Something went wrong. Please try again.'
+          );
+        }
       }
     } finally {
       setIsLoading(false);

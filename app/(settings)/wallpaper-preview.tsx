@@ -44,7 +44,7 @@ export default function WallpaperPreviewScreen() {
   const initialIndex = parseInt(params.index as string) || 0;
   const wallpapers = WALLPAPERS[category];
 
-  const brandColor = useThemeStore((state) => state.accentColor);
+  const { accentColor: brandColor, bubbleShape } = useThemeStore();
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [rightBubbleColor, setRightBubbleColor] = useState(brandColor);
   const [leftBubbleColor, setLeftBubbleColor] = useState('#1F1F1F');
@@ -196,10 +196,13 @@ export default function WallpaperPreviewScreen() {
           <View
             style={{
               backgroundColor: leftBubbleColor,
-              borderColor:
-                activeSide === 'left' ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.05)',
+              borderColor: activeSide === 'left' ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.05)',
+              borderRadius: bubbleShape === 'round' ? 24 : bubbleShape === 'soft' ? 12 : 4,
+              borderTopLeftRadius: bubbleShape === 'sharp' ? 4 : 4,
             }}
-            className={`max-w-[80%] self-start overflow-hidden rounded-[20px] rounded-tl-none border ${activeSide === 'left' ? 'scale-[1.01]' : 'scale-100'}`}>
+            className={`max-w-[80%] self-start overflow-hidden border ${
+              activeSide === 'left' ? 'scale-[1.01]' : 'scale-100'
+            }`}>
             <TouchableOpacity
               activeOpacity={0.9}
               onPress={() => {
@@ -224,10 +227,13 @@ export default function WallpaperPreviewScreen() {
           <View
             style={{
               backgroundColor: rightBubbleColor,
-              borderColor:
-                activeSide === 'right' ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.1)',
+              borderColor: activeSide === 'right' ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.1)',
+              borderRadius: bubbleShape === 'round' ? 24 : bubbleShape === 'soft' ? 12 : 4,
+              borderTopRightRadius: bubbleShape === 'sharp' ? 4 : 4,
             }}
-            className={`max-w-[80%] self-end rounded-[20px] rounded-tr-none border ${activeSide === 'right' ? 'scale-[1.01]' : 'scale-100'}`}>
+            className={`max-w-[80%] self-end border ${
+              activeSide === 'right' ? 'scale-[1.01]' : 'scale-100'
+            }`}>
             <TouchableOpacity
               activeOpacity={0.9}
               onPress={() => {

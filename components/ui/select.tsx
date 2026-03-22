@@ -88,20 +88,20 @@ function SelectContent({
             <NativeOnlyAnimatedView className="z-50" entering={FadeIn} exiting={FadeOut}>
               <SelectPrimitive.Content
                 className={cn(
-                  'bg-popover border-border relative z-50 min-w-[8rem] rounded-md border shadow-md shadow-black/5',
+                  'bg-popover border-border relative z-50 min-w-[8rem] rounded-2xl border',
                   Platform.select({
                     web: cn(
                       'animate-in fade-in-0 zoom-in-95 origin-(--radix-select-content-transform-origin) max-h-52 overflow-y-auto overflow-x-hidden',
-                      props.side === 'bottom' && 'slide-in-from-top-2',
-                      props.side === 'top' && 'slide-in-from-bottom-2'
+                      props.side === 'bottom' && 'slide-in-from-top-0',
+                      props.side === 'top' && 'slide-in-from-bottom-0'
                     ),
-                    native: 'p-1',
+                    native: 'p-2',
                   }),
                   position === 'popper' &&
                     Platform.select({
                       web: cn(
-                        props.side === 'bottom' && 'translate-y-1',
-                        props.side === 'top' && '-translate-y-1'
+                        props.side === 'bottom' && 'translate-y-[-4px]',
+                        props.side === 'top' && 'translate-y-[4px]'
                       ),
                     }),
                   className
@@ -152,9 +152,9 @@ function SelectItem({
   return (
     <SelectPrimitive.Item
       className={cn(
-        'active:bg-accent group relative flex w-full flex-row items-center gap-2 rounded-sm py-2 pl-2 pr-8 sm:py-1.5',
+        'active:bg-secondary group relative flex w-full flex-row items-center gap-2 rounded-xl py-3 pl-3 pr-10',
         Platform.select({
-          web: 'focus:bg-accent focus:text-accent-foreground *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2 cursor-default outline-none data-[disabled]:pointer-events-none [&_svg]:pointer-events-none',
+          web: 'focus:bg-secondary focus:text-accent-foreground *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2 cursor-default outline-none data-[disabled]:pointer-events-none [&_svg]:pointer-events-none transition-colors',
         }),
         props.disabled && 'opacity-50',
         className

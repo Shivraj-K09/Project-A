@@ -1,0 +1,25 @@
+# FEATURE IDEA: privacy shield (stealth mode)
+
+## concept:
+a sophisticated privacy layer for messaging apps that protects sensitive conversations from wandering eyes in public spaces.
+
+## key features:
+1.  ### constant gaussian frost:
+    *   when enabled, the entire chat list and message content is covered with a premium gaussian blur/frost overlay.
+    *   the UI remains interactive, but content is illegible to bystanders.
+
+2.  ### interactive "tap-to-peek":
+    *   users can long-press (haptic feedback) on a blurred item to temporarily "melt" the frost.
+    *   releasing the finger instantly re-applies the shield.
+
+3.  ### context-aware protection:
+    *   blur all media (images/videos) by default.
+    *   blur sender names and message snippets in the chat list.
+    *   optional: automatic activation based on location or unrecognized face detection.
+
+4.  ### premium aesthetic:
+    *   uses high-performance `BlurView` (Gaussian blur) rather than just a black overlay.
+    *   includes a "Stealth Mode Active" indicator with a sleek glassmorphism design.
+
+## why it matters:
+whatsapp and telegram lack a toggleable, interactive privacy layer that works alongside the main UI. this feature caters to "pro" users who value discretion without sacrificing usability.

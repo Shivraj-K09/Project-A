@@ -3,7 +3,7 @@ import {
   type MaterialTopTabBarProps,
 } from '@react-navigation/material-top-tabs';
 import * as Haptics from 'expo-haptics';
-import { Redirect, useRouter, withLayoutContext } from 'expo-router';
+import { useRouter, withLayoutContext } from 'expo-router';
 import { useColorScheme } from 'nativewind';
 import { Dimensions, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -264,7 +264,7 @@ function CustomTabBar({ state, navigation, descriptors }: MaterialTopTabBarProps
 }
 
 export default function TabsLayout() {
-  const { isAuthenticated, isLoading, requiresTwoStepVerification, isTwoStepVerified } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const { width } = Dimensions.get('window');
 
   if (isLoading) {
@@ -272,26 +272,27 @@ export default function TabsLayout() {
   }
 
   if (!isAuthenticated) {
-    return <Redirect href="/(auth)/login" />;
-  }
-
-  if (requiresTwoStepVerification && !isTwoStepVerified) {
-    return <Redirect href="/(auth)/two-step-verify" />;
+    return <View className="flex-1 bg-background" />;
   }
 
   return (
-    <MaterialTopTabs
-      tabBar={(props: MaterialTopTabBarProps) => <CustomTabBar {...props} />}
-      tabBarPosition="bottom"
-      keyboardDismissMode="on-drag"
-      initialLayout={{ width }}
-      screenOptions={{
-        lazy: true,
-      }}>
-      <MaterialTopTabs.Screen name="chats" />
-      <MaterialTopTabs.Screen name="moments" />
-      <MaterialTopTabs.Screen name="calls" />
-      <MaterialTopTabs.Screen name="account" />
-    </MaterialTopTabs>
+    <View className="flex-1 bg-background">
+      {/* flex:1 ensures tab scenes fill the screen (without it, content can appear blank). */}
+      <View className="flex-1">
+        <MaterialTopTabs
+          tabBar={(props: MaterialTopTabBarProps) => <CustomTabBar {...props} />}
+          tabBarPosition="bottom"
+          keyboardDismissMode="on-drag"
+          initialLayout={{ width }}
+          screenOptions={{
+            lazy: true,
+          }}>
+          <MaterialTopTabs.Screen name="chats" />
+          <MaterialTopTabs.Screen name="moments" />
+          <MaterialTopTabs.Screen name="calls" />
+          <MaterialTopTabs.Screen name="account" />
+        </MaterialTopTabs>
+      </View>
+    </View>
   );
 }

@@ -42,7 +42,8 @@ export default function Screen() {
   }
 
   if (!isAuthenticated) {
-    return <Redirect href="/(auth)/onboarding" />;
+    // Root _layout performs router.replace to onboarding once auth is ready (single source of truth)
+    return <View className="flex-1 bg-background" />;
   }
 
   if (requiresTwoStepVerification && !isTwoStepVerified) {
@@ -53,6 +54,7 @@ export default function Screen() {
     return <Redirect href="/(auth)/phone-setup" />;
   }
 
-  // Redirect to the new tab navigator
-  return <Redirect href="/(tabs)/chats" />;
+  // Authenticated + complete: RootLayoutNav performs a single router.replace to (tabs)/chats.
+  // Avoid <Redirect href="(tabs)/chats" /> here or the stack navigates twice and Chats mounts twice.
+  return <View className="flex-1 bg-background" />;
 }

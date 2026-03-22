@@ -11,6 +11,7 @@ import {
 } from 'lucide-react-native';
 import { useThemeStore } from '@/store/theme-store';
 import { cn } from '@/lib/utils';
+import { SETTINGS_MENU_LIST_CLASS, cnSettingsMenuCard } from '@/lib/settings-ui';
 import { useNetworkUsage, useResetNetworkUsage } from '@/hooks/use-user';
 
 export default function NetworkUsageScreen() {
@@ -59,29 +60,30 @@ export default function NetworkUsageScreen() {
             Overview
           </Text>
 
-          <View className="flex-row items-center justify-between border-b border-border/5 py-4">
-            <View className="mr-4 flex-1 flex-row items-center">
-              <View className="mr-4 h-9 w-9 items-center justify-center rounded-xl bg-brand/5">
-                <Database size={18} color={brandColor} strokeWidth={2} />
+          <View className={SETTINGS_MENU_LIST_CLASS}>
+            <View className={cnSettingsMenuCard('flex-row items-center justify-between')}>
+              <View className="mr-4 flex-1 flex-row items-center">
+                <View className="mr-4 h-9 w-9 items-center justify-center rounded-xl bg-brand/5">
+                  <Database size={18} color={brandColor} strokeWidth={2} />
+                </View>
+                <Text className="text-[16px] font-semibold text-foreground">Total Usage</Text>
               </View>
-              <Text className="text-[16px] font-semibold text-foreground">Total Usage</Text>
+              <Text className="text-[14px] font-medium text-muted-foreground">{totalFormatted}</Text>
             </View>
-            <Text className="text-[14px] font-medium text-muted-foreground">{totalFormatted}</Text>
-          </View>
 
-          <SettingRow
-            icon={RefreshCw}
-            title="Last Reset"
-            value={
-              usage?.last_reset_at
-                ? new Date(usage.last_reset_at).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                  })
-                : 'Never'
-            }
-            isLast
-          />
+            <SettingRow
+              icon={RefreshCw}
+              title="Last Reset"
+              value={
+                usage?.last_reset_at
+                  ? new Date(usage.last_reset_at).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                    })
+                  : 'Never'
+              }
+            />
+          </View>
         </View>
 
         {/* Detailed Stats Section */}
@@ -90,24 +92,25 @@ export default function NetworkUsageScreen() {
             Breakdown
           </Text>
 
-          <SettingRow
-            icon={HardDrive}
-            title="Media"
-            value={formatBytes((usage?.media_sent || 0) + (usage?.media_received || 0))}
-          />
+          <View className={SETTINGS_MENU_LIST_CLASS}>
+            <SettingRow
+              icon={HardDrive}
+              title="Media"
+              value={formatBytes((usage?.media_sent || 0) + (usage?.media_received || 0))}
+            />
 
-          <SettingRow
-            icon={PhoneCall}
-            title="Calls"
-            value={formatBytes((usage?.calls_sent || 0) + (usage?.calls_received || 0))}
-          />
+            <SettingRow
+              icon={PhoneCall}
+              title="Calls"
+              value={formatBytes((usage?.calls_sent || 0) + (usage?.calls_received || 0))}
+            />
 
-          <SettingRow
-            icon={MessageSquare}
-            title="Messages"
-            value={formatBytes((usage?.messages_sent || 0) + (usage?.messages_received || 0))}
-            isLast
-          />
+            <SettingRow
+              icon={MessageSquare}
+              title="Messages"
+              value={formatBytes((usage?.messages_sent || 0) + (usage?.messages_received || 0))}
+            />
+          </View>
         </View>
 
         {/* Action Section */}
@@ -132,17 +135,13 @@ export default function NetworkUsageScreen() {
   );
 }
 
-function SettingRow({ icon: Icon, title, value, onPress, isLast, className = '' }: any) {
+function SettingRow({ icon: Icon, title, value, onPress, className = '' }: any) {
   const brandColor = useThemeStore((state) => state.accentColor);
   return (
     <TouchableOpacity
       activeOpacity={onPress ? 0.6 : 1}
       onPress={onPress}
-      className={cn(
-        'flex-row items-center py-4',
-        !isLast && 'border-b border-border/5',
-        className
-      )}>
+      className={cn(cnSettingsMenuCard(), 'flex-row items-center', className)}>
       <View className="mr-4 h-9 w-9 items-center justify-center rounded-xl bg-brand/5">
         <Icon size={18} color={brandColor} strokeWidth={2} />
       </View>

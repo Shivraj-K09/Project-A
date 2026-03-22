@@ -11,7 +11,7 @@ import {
 import { Text } from '@/components/ui/text';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Check, Monitor, ChevronRight, Sun } from 'lucide-react-native';
-import { useRouter } from 'expo-router';
+import { useStableNavigate } from '@/lib/use-stable-navigate';
 import { useThemeStore } from '@/store/theme-store';
 import { Image } from 'expo-image';
 import { WALLPAPERS } from '@/lib/wallpapers';
@@ -27,7 +27,7 @@ const COLUMN_WIDTH = (width - CONTAINER_PADDING - GAP_SIZE) / 3;
 
 export default function ChatWallpaperScreen() {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
+  const stableNavigate = useStableNavigate();
   const brandColor = useThemeStore((state) => state.accentColor);
   const { toast } = useToast();
 
@@ -122,7 +122,7 @@ export default function ChatWallpaperScreen() {
             key={wp.id}
             activeOpacity={0.8}
             onPress={() =>
-              router.push({
+              stableNavigate({
                 pathname: '/(settings)/wallpaper-preview',
                 params: { index: index.toString(), category: category.toLowerCase() },
               })

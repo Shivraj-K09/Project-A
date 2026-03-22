@@ -270,7 +270,7 @@ function ProfileEditableRow({
 export default function ProfileDetailsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user, signOut } = useAuth();
+  const { user, signOut, isAuthenticated } = useAuth();
   const { brandColor, isDark } = useAppTheme();
   const { toast } = useToast();
 
@@ -281,6 +281,7 @@ export default function ProfileDetailsScreen() {
   const { mutate: updateDetails } = useUpdateProfileDetails();
 
   const [isUploading, setIsUploading] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const [showViewer, setShowViewer] = useState(false);
   const isMounted = useRef(true);
 
@@ -292,12 +293,30 @@ export default function ProfileDetailsScreen() {
   }, []);
 
   const isLoading = profileLoading || detailsLoading;
+  
+  // Guard against unauthenticated render (prevents flicker on logout)
+  if ((isLoading || !isAuthenticated) && !isSigningOut) {
+    return (
+      <View className="flex-1 items-center justify-center bg-background">
+        <ActivityIndicator size="small" color={brandColor} />
+      </View>
+    );
+  }
+
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+    // Small delay to let the user see the loading state for better feel
+    setTimeout(async () => {
+      await signOut();
+    }, 400);
+  };
+
   const username = profile?.username || 'User';
   const initial = username.charAt(0).toUpperCase();
 
-  const formattedPhone = useMemo(() => {
-    return formatPhoneNumber(profile?.phone_number, profile?.country_code);
-  }, [profile]);
+  const formattedPhone = profile?.phone_number 
+    ? formatPhoneNumber(profile.phone_number, profile.country_code)
+    : 'Not set';
 
   const handleUpdateProfile = (data: any) => {
     updateProfile(data, {
@@ -361,14 +380,6 @@ export default function ProfileDetailsScreen() {
       if (isMounted.current) setIsUploading(false);
     }
   };
-
-  if (isLoading) {
-    return (
-      <View className="flex-1 items-center justify-center bg-background">
-        <ActivityIndicator size="small" color={brandColor} />
-      </View>
-    );
-  }
 
   return (
     <KeyboardAvoidingView
@@ -499,10 +510,20 @@ export default function ProfileDetailsScreen() {
         <View className="mt-10 items-center">
           <TouchableOpacity
             activeOpacity={0.8}
-            onPress={signOut}
+            onPress={handleSignOut}
+            disabled={isSigningOut}
             className="w-full flex-row items-center justify-center rounded-2xl border border-destructive bg-destructive py-4 shadow-sm">
-            <LogOut size={18} color="white" strokeWidth={2.5} />
-            <Text className="ml-3 text-base font-bold text-white">Sign Out</Text>
+            {isSigningOut ? (
+              <View className="flex-row items-center justify-center">
+                <ActivityIndicator color="white" size="small" />
+                <Text className="ml-3 text-base font-bold text-white">Signing Out...</Text>
+              </View>
+            ) : (
+              <>
+                <LogOut size={18} color="white" strokeWidth={2.5} />
+                <Text className="ml-3 text-base font-bold text-white">Sign Out</Text>
+              </>
+            )}
           </TouchableOpacity>
 
           <View className="mt-10 items-center justify-center">
@@ -513,10 +534,6 @@ export default function ProfileDetailsScreen() {
               </Text>
             </View>
           </View>
-
-          <Text className="text-[11px] font-bold text-muted-foreground">
-            Version 1.0.0 (Development Build)
-          </Text>
         </View>
       </ScrollView>
 

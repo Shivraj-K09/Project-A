@@ -22,6 +22,8 @@ import { useState, useMemo } from 'react';
 import * as Haptics from 'expo-haptics';
 
 import { useThemeStore } from '@/store/theme-store';
+import { cn } from '@/lib/utils';
+import { SETTINGS_MENU_LIST_CLASS, cnSettingsMenuCard } from '@/lib/settings-ui';
 
 type VisibilityOption = 'everyone' | 'contacts' | 'nobody';
 type OnlineOption = 'everyone' | 'same_as_last_seen';
@@ -81,34 +83,35 @@ export default function PrivacySettingsScreen() {
             Who can see my personal info
           </Text>
 
-          <SettingRow
-            icon={Eye}
-            title="Last Seen"
-            value={VISIBILITY_OPTIONS[settings?.last_seen || 'everyone'].title}
-            onPress={() => setEditingKey('last_seen')}
-          />
+          <View className={SETTINGS_MENU_LIST_CLASS}>
+            <SettingRow
+              icon={Eye}
+              title="Last Seen"
+              value={VISIBILITY_OPTIONS[settings?.last_seen || 'everyone'].title}
+              onPress={() => setEditingKey('last_seen')}
+            />
 
-          <SettingRow
-            icon={Camera}
-            title="Profile Photo"
-            value={VISIBILITY_OPTIONS[settings?.profile_photo || 'everyone'].title}
-            onPress={() => setEditingKey('profile_photo')}
-          />
+            <SettingRow
+              icon={Camera}
+              title="Profile Photo"
+              value={VISIBILITY_OPTIONS[settings?.profile_photo || 'everyone'].title}
+              onPress={() => setEditingKey('profile_photo')}
+            />
 
-          <SettingRow
-            icon={Info}
-            title="About"
-            value={VISIBILITY_OPTIONS[settings?.about || 'everyone'].title}
-            onPress={() => setEditingKey('about')}
-          />
+            <SettingRow
+              icon={Info}
+              title="About"
+              value={VISIBILITY_OPTIONS[settings?.about || 'everyone'].title}
+              onPress={() => setEditingKey('about')}
+            />
 
-          <SettingRow
-            icon={Users}
-            title="Groups"
-            value={VISIBILITY_OPTIONS[settings?.groups || 'everyone'].title}
-            onPress={() => setEditingKey('groups')}
-            isLast
-          />
+            <SettingRow
+              icon={Users}
+              title="Groups"
+              value={VISIBILITY_OPTIONS[settings?.groups || 'everyone'].title}
+              onPress={() => setEditingKey('groups')}
+            />
+          </View>
         </View>
 
         {/* Messaging Section */}
@@ -117,35 +120,35 @@ export default function PrivacySettingsScreen() {
             Messaging & Activity
           </Text>
 
-          <View className="flex-row items-center justify-between py-3">
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => handleToggleReadReceipts(!(settings?.read_receipts ?? true))}
-              className="mr-4 flex-1 flex-row items-center">
-              <View className="mr-4 h-9 w-9 items-center justify-center rounded-xl bg-brand/5">
-                <MessageSquare size={18} color={brandColor} strokeWidth={2} />
-              </View>
-              <View className="flex-1">
-                <Text className="text-[16px] font-semibold text-foreground">Read Receipts</Text>
-                <Text className="mt-0.5 text-[12px] text-muted-foreground">
-                  If turned off, you won't send or receive read receipts.
-                </Text>
-              </View>
-            </TouchableOpacity>
-            <Switch
-              checked={settings?.read_receipts ?? true}
-              onCheckedChange={handleToggleReadReceipts}
+          <View className={SETTINGS_MENU_LIST_CLASS}>
+            <View className={cnSettingsMenuCard('flex-row items-center justify-between')}>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => handleToggleReadReceipts(!(settings?.read_receipts ?? true))}
+                className="mr-4 flex-1 flex-row items-center">
+                <View className="mr-4 h-9 w-9 items-center justify-center rounded-xl bg-brand/5">
+                  <MessageSquare size={18} color={brandColor} strokeWidth={2} />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-[16px] font-semibold text-foreground">Read Receipts</Text>
+                  <Text className="mt-0.5 text-[12px] text-muted-foreground">
+                    If turned off, you won't send or receive read receipts.
+                  </Text>
+                </View>
+              </TouchableOpacity>
+              <Switch
+                checked={settings?.read_receipts ?? true}
+                onCheckedChange={handleToggleReadReceipts}
+              />
+            </View>
+
+            <SettingRow
+              icon={Shield}
+              title="Online Status"
+              value={ONLINE_OPTIONS[settings?.online_status || 'everyone'].title}
+              onPress={() => setEditingKey('online_status')}
             />
           </View>
-
-          <SettingRow
-            icon={Shield}
-            title="Online Status"
-            value={ONLINE_OPTIONS[settings?.online_status || 'everyone'].title}
-            onPress={() => setEditingKey('online_status')}
-            isLast
-            className="mt-2"
-          />
         </View>
 
         {/* Security Footer Note */}
@@ -210,13 +213,13 @@ export default function PrivacySettingsScreen() {
   );
 }
 
-function SettingRow({ icon: Icon, title, value, onPress, isLast, className = '' }: any) {
+function SettingRow({ icon: Icon, title, value, onPress, className = '' }: any) {
   const brandColor = useThemeStore((state) => state.accentColor);
   return (
     <TouchableOpacity
       activeOpacity={0.6}
       onPress={onPress}
-      className={`flex-row items-center py-4 ${!isLast ? 'border-b border-border/5' : ''} ${className}`}>
+      className={cn(cnSettingsMenuCard(), 'flex-row items-center', className)}>
       <View className="mr-4 h-9 w-9 items-center justify-center rounded-xl bg-brand/5">
         <Icon size={18} color={brandColor} strokeWidth={2} />
       </View>

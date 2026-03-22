@@ -21,6 +21,8 @@
     },
     "android": {
       "edgeToEdgeEnabled": true,
+      "softwareKeyboardLayoutMode": "resize",
+      "permissions": ["android.permission.POST_NOTIFICATIONS"],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -37,6 +39,7 @@
       "expo-router",
       "expo-secure-store",
       "expo-web-browser",
+      "expo-notifications",
       "@react-native-google-signin/google-signin",
       [
         "expo-camera",
@@ -52,7 +55,8 @@
         }
       ],
       "expo-audio",
-      "expo-asset"
+      "expo-asset",
+      "expo-local-authentication"
     ],
     "experiments": {
       "typedRoutes": true

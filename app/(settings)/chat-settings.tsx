@@ -1,6 +1,6 @@
 import { Switch } from '@/components/ui/switch';
 import { Text } from '@/components/ui/text';
-import { useRouter } from 'expo-router';
+import { useStableNavigate } from '@/lib/use-stable-navigate';
 import * as Haptics from 'expo-haptics';
 import {
   ChevronRight,
@@ -18,6 +18,7 @@ import { ScrollView, TouchableOpacity, View, ActivityIndicator } from 'react-nat
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Drawer } from '@/components/ui/drawer';
 import { cn } from '@/lib/utils';
+import { SETTINGS_MENU_LIST_CLASS, cnSettingsMenuCard } from '@/lib/settings-ui';
 import {
   useChatSettings,
   useUpdateChatSettings,
@@ -37,7 +38,7 @@ const formatBytes = (bytes: number) => {
 
 export default function ChatSettingsScreen() {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
+  const stableNavigate = useStableNavigate();
   const brandColor = useThemeStore((state) => state.accentColor);
   const { toast } = useToast();
 
@@ -136,17 +137,18 @@ export default function ChatSettingsScreen() {
             Display
           </Text>
 
+          <View className={SETTINGS_MENU_LIST_CLASS}>
           <SettingRow
             icon={ImageIcon}
             title="Chat Wallpaper"
             value={settings?.chat_wallpaper === 'default' ? 'Default' : 'Custom'}
-            onPress={() => router.push('/(settings)/chat-wallpaper')}
+            onPress={() => stableNavigate('/(settings)/chat-wallpaper')}
           />
 
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => handleToggle('save_to_gallery', !(settings?.save_to_gallery ?? true))}
-            className="flex-row items-center justify-between py-4">
+            className={cnSettingsMenuCard('flex-row items-center justify-between')}>
             <View className="mr-4 flex-1 flex-row items-center">
               <View className="mr-4 h-9 w-9 items-center justify-center rounded-xl bg-brand/10">
                 <HardDrive size={18} color={brandColor} strokeWidth={2.5} />
@@ -163,6 +165,7 @@ export default function ChatSettingsScreen() {
               onCheckedChange={(val) => handleToggle('save_to_gallery', val)}
             />
           </TouchableOpacity>
+          </View>
         </View>
 
         {/* Media Auto-Download Section - Using Shared Drawer */}
@@ -171,6 +174,7 @@ export default function ChatSettingsScreen() {
             Media Auto-Download
           </Text>
 
+          <View className={SETTINGS_MENU_LIST_CLASS}>
           <SettingRow
             icon={Smartphone}
             title="When Using Mobile Data"
@@ -195,8 +199,9 @@ export default function ChatSettingsScreen() {
                   : wifiDownloadList.join(', ')
             }
             onPress={() => setDrawerConfig({ visible: true, type: 'wifi' })}
-            isLast
           />
+
+          </View>
 
           <Text className="mt-4 text-[11px] font-medium leading-4 text-muted-foreground/40">
             Voice messages are always automatically downloaded for the best experience.
@@ -209,10 +214,11 @@ export default function ChatSettingsScreen() {
             Storage & Data
           </Text>
 
+          <View className={SETTINGS_MENU_LIST_CLASS}>
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => handleToggle('data_saver', !(settings?.data_saver ?? false))}
-            className="flex-row items-center justify-between border-b border-border/5 py-4">
+            className={cnSettingsMenuCard('flex-row items-center justify-between')}>
             <View className="mr-4 flex-1 flex-row items-center">
               <View className="mr-4 h-9 w-9 items-center justify-center rounded-xl bg-brand/10">
                 <Zap size={18} color={brandColor} strokeWidth={2.5} />
@@ -234,14 +240,14 @@ export default function ChatSettingsScreen() {
             icon={Database}
             title="Network Usage"
             value={formatBytes(totalNetwork)}
-            onPress={() => router.push('/(settings)/network-usage')}
+            onPress={() => stableNavigate('/(settings)/network-usage')}
           />
 
           <SettingRow
             icon={Trash2}
             title="Manage Storage"
             value={formatBytes(totalStorage)}
-            onPress={() => router.push('/(settings)/manage-storage')}
+            onPress={() => stableNavigate('/(settings)/manage-storage')}
           />
 
           <TouchableOpacity
@@ -249,7 +255,7 @@ export default function ChatSettingsScreen() {
             onPress={() =>
               handleToggle('high_quality_upload', !(settings?.high_quality_upload ?? true))
             }
-            className="mt-2 flex-row items-center justify-between py-4">
+            className={cnSettingsMenuCard('flex-row items-center justify-between')}>
             <View className="mr-4 flex-1 flex-row items-center">
               <View className="mr-4 h-9 w-9 items-center justify-center rounded-xl bg-brand/10">
                 <Zap size={18} color={brandColor} strokeWidth={2.5} />
@@ -266,6 +272,7 @@ export default function ChatSettingsScreen() {
               onCheckedChange={(val) => handleToggle('high_quality_upload', val)}
             />
           </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
 
@@ -335,11 +342,7 @@ function SettingRow({ icon: Icon, title, value, onPress, isLast, className = '' 
     <TouchableOpacity
       activeOpacity={0.6}
       onPress={onPress}
-      className={cn(
-        'flex-row items-center py-4',
-        !isLast && 'border-b border-border/5',
-        className
-      )}>
+      className={cn(cnSettingsMenuCard(), 'flex-row items-center', className)}>
       <View className="mr-4 h-9 w-9 items-center justify-center rounded-xl bg-brand/10">
         <Icon size={18} color={brandColor} strokeWidth={2} />
       </View>

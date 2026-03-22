@@ -17,6 +17,7 @@ import {
 } from 'lucide-react-native';
 import { useThemeStore } from '@/store/theme-store';
 import { cn } from '@/lib/utils';
+import { SETTINGS_MENU_LIST_CLASS, cnSettingsMenuCard } from '@/lib/settings-ui';
 import { useStorageUsage, useClearStorage } from '@/hooks/use-user';
 import { useToast } from '@/components/ui/toast';
 import * as Haptics from 'expo-haptics';
@@ -235,15 +236,17 @@ export default function ManageStorageScreen() {
             Storage Breakdown
           </Text>
 
-          <SettingRow icon={ImageIcon} title="Photos" value={formatBytes(stats.photos)} />
-          <SettingRow icon={PlayCircle} title="Videos" value={formatBytes(stats.videos)} />
-          <SettingRow
-            icon={FileText}
-            title="Internal App Data"
-            value={formatBytes(stats.documents)}
-          />
-          <SettingRow icon={Music} title="Audio Files" value={formatBytes(stats.audio)} />
-          <SettingRow icon={Trash2} title="Cached Data" value={formatBytes(stats.cache)} isLast />
+          <View className={SETTINGS_MENU_LIST_CLASS}>
+            <SettingRow icon={ImageIcon} title="Photos" value={formatBytes(stats.photos)} />
+            <SettingRow icon={PlayCircle} title="Videos" value={formatBytes(stats.videos)} />
+            <SettingRow
+              icon={FileText}
+              title="Internal App Data"
+              value={formatBytes(stats.documents)}
+            />
+            <SettingRow icon={Music} title="Audio Files" value={formatBytes(stats.audio)} />
+            <SettingRow icon={Trash2} title="Cached Data" value={formatBytes(stats.cache)} />
+          </View>
         </View>
 
         {/* Action Section */}
@@ -365,15 +368,10 @@ function CompactStat({
   );
 }
 
-function SettingRow({ icon: Icon, title, value, isLast, className = '' }: any) {
+function SettingRow({ icon: Icon, title, value, className = '' }: any) {
   const brandColor = useThemeStore((state) => state.accentColor);
   return (
-    <View
-      className={cn(
-        'flex-row items-center py-4',
-        !isLast && 'border-b border-border/5',
-        className
-      )}>
+    <View className={cn(cnSettingsMenuCard(), 'flex-row items-center', className)}>
       <View className="mr-4 h-9 w-9 items-center justify-center rounded-xl bg-brand/5">
         <Icon size={18} color={brandColor} strokeWidth={2} />
       </View>

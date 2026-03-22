@@ -10,13 +10,11 @@ import { useEffect } from 'react';
  * the auth context updates → this hook fires → redirects to login.
  */
 export function useProtectedRoute() {
-  const { isAuthenticated, isLoading, requiresTwoStepVerification, isTwoStepVerified } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const segments = useSegments();
 
   useEffect(() => {
     if (isLoading) return;
-    const inAuthGroup = segments[0] === '(auth)';
-    const isTwoStepScreen = inAuthGroup && segments[1] === 'two-step-verify';
 
     if (!isAuthenticated) {
       // Use setTimeout to avoid navigation during render
@@ -25,14 +23,7 @@ export function useProtectedRoute() {
       }, 0);
       return () => clearTimeout(timer);
     }
+  }, [isAuthenticated, isLoading, segments]);
 
-    if (requiresTwoStepVerification && !isTwoStepVerified && !isTwoStepScreen) {
-      const timer = setTimeout(() => {
-        router.replace('/(auth)/two-step-verify');
-      }, 0);
-      return () => clearTimeout(timer);
-    }
-  }, [isAuthenticated, isLoading, requiresTwoStepVerification, isTwoStepVerified, segments]);
-
-  return { isAuthenticated, isLoading, requiresTwoStepVerification, isTwoStepVerified };
+  return { isAuthenticated, isLoading };
 }

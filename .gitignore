@@ -41,9 +41,10 @@ yarn-error.*
 expo-env.d.ts
 # @end expo-cli
 
-.agent
-.agents
 .cursor
 .claude
 android
 ios
+.agent
+.agents
+skills-lock.json

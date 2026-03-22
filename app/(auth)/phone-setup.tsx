@@ -3,8 +3,10 @@ import { useAuth } from '@/contexts/auth-context';
 import { useProtectedRoute } from '@/hooks/use-protected-route';
 import {
   useCheckUsername,
+  useProfileCompletion,
   useUpdateNotificationSettings,
   useUpdateProfile,
+  useUserProfile,
 } from '@/hooks/use-user';
 import { Text } from '@/components/ui/text';
 import { useColorScheme } from 'nativewind';
@@ -13,7 +15,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
 import { router } from 'expo-router';
 import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
+import { isDevice } from 'expo-device';
 import Constants from 'expo-constants';
 import React, { useCallback, useRef, useState } from 'react';
 import {
@@ -127,6 +129,8 @@ export default function PhoneSetupScreen() {
   } = useCheckUsername(debouncedUsername);
 
   // React Query: Profile update mutation
+  const { data: profileCompletion } = useProfileCompletion();
+  const { data: activeProfile } = useUserProfile();
   const updateProfile = useUpdateProfile();
   const updateNotificationSettings = useUpdateNotificationSettings();
 
@@ -237,6 +241,7 @@ export default function PhoneSetupScreen() {
         'check_phone_number_availability',
         {
           p_phone_number: fullNumber,
+          p_exclude_profile_id: activeProfile?.id ?? null,
         }
       );
 
@@ -244,9 +249,14 @@ export default function PhoneSetupScreen() {
 
       if (isPhoneAvailable === false) {
         Alert.alert(
-          'Number Already Registered',
-          'This phone number is already linked to another account.'
+          'Number already in use',
+          'Another active profile has this number. For reclaim after delete, run Supabase migrations `20250322100000_users_phone_username_partial_unique` and `20250323100000_check_phone_exclude_profile`.'
         );
+        setIsLoading(false);
+        return;
+      }
+      if (isPhoneAvailable !== true) {
+        Alert.alert('Could not verify phone', 'Check your connection and try again.');
         setIsLoading(false);
         return;
       }
@@ -256,7 +266,7 @@ export default function PhoneSetupScreen() {
       let expoPushToken = null;
 
       try {
-        if (Device.isDevice) {
+        if (isDevice) {
           const { status: existingStatus } = await Notifications.getPermissionsAsync();
           let finalStatus = existingStatus;
 
@@ -300,10 +310,16 @@ export default function PhoneSetupScreen() {
 
       router.replace('/');
     } catch (err: any) {
-      if (err?.message?.includes('phone_number') || err?.code === '23505') {
+      if (__DEV__) console.error('[PhoneSetup]', err?.code, err?.message, err);
+      if (err?.code === '42501') {
         Alert.alert(
-          'Number Already Registered',
-          'This phone number is already linked to another account.'
+          'Permission blocked',
+          'Row-level security on public.users rejected this save. After the multi-profile migration, INSERT/UPDATE policies must use auth_user_id = auth.uid(), not id = auth.uid(). Run migration `20250324120000_users_rls_auth_user_id.sql` in Supabase SQL.'
+        );
+      } else if (err?.message?.includes('phone_number') || err?.code === '23505') {
+        Alert.alert(
+          'Number could not be saved',
+          'Run in Supabase → SQL → paste the full file `20250324100000_drop_all_global_phone_username_uniques.sql` from your project (it drops global phone/username uniques, then adds partial indexes for active rows only).'
         );
       } else if (err?.message?.includes('username')) {
         // Username was taken between check and save
@@ -385,6 +401,13 @@ export default function PhoneSetupScreen() {
             <Text className="mt-1 text-sm leading-5 text-muted-foreground">
               Set up your identity so your friends can find you
             </Text>
+            {profileCompletion?.isArchived ? (
+              <View className="mt-4 rounded-xl border border-primary/25 bg-primary/10 px-3.5 py-3 dark:bg-primary/15">
+                <Text className="text-[13px] font-semibold leading-[20px] text-foreground">
+                  Your account was deleted before. Confirm your details below to turn it back on.
+                </Text>
+              </View>
+            ) : null}
           </Animated.View>
 
           {/* ─── Profile Picture ────────────────────────────── */}

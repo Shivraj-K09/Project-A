@@ -12,6 +12,7 @@ import { useSecuritySettings, useUpdateSecuritySettings } from '@/hooks/use-user
 import { getAppLockEnabled, setAppLockEnabled as setStoredAppLockEnabled } from '@/lib/app-lock';
 
 import { useThemeStore } from '@/store/theme-store';
+import { cnSettingsMenuCard } from '@/lib/settings-ui';
 
 export default function SecuritySettingsScreen() {
   const insets = useSafeAreaInsets();
@@ -84,7 +85,7 @@ export default function SecuritySettingsScreen() {
           </Text>
 
           {hasBiometrics ? (
-            <View className="flex-row items-center justify-between py-3">
+            <View className={cnSettingsMenuCard('flex-row items-center justify-between')}>
               <TouchableOpacity
                 activeOpacity={0.7}
                 onPress={() => handleToggleAppLock(!appLockEnabled)}
@@ -116,7 +117,7 @@ export default function SecuritySettingsScreen() {
             Account Protection
           </Text>
 
-          <View className="flex-row items-center justify-between border-b border-border/5 py-3">
+          <View className={cnSettingsMenuCard('flex-row items-center justify-between')}>
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => handleToggleSecurityAlerts(!(dbSettings?.security_alerts ?? true))}
@@ -137,25 +138,6 @@ export default function SecuritySettingsScreen() {
             />
           </View>
 
-          <TouchableOpacity
-            activeOpacity={0.6}
-            className="flex-row items-center py-5"
-            onPress={() => router.push('/(settings)/two-step-verification')}>
-            <View className="mr-4 h-9 w-9 items-center justify-center rounded-xl bg-brand/5">
-              <Lock size={18} color={brandColor} strokeWidth={2} />
-            </View>
-            <View className="flex-1">
-              <Text className="text-[16px] font-semibold text-foreground">
-                Two-Step Verification
-              </Text>
-              <Text className="mt-0.5 text-[12px] leading-5 text-muted-foreground">
-                {dbSettings?.two_step_verification
-                  ? 'Active'
-                  : 'Add an extra layer of protection to your account.'}
-              </Text>
-            </View>
-            <ChevronRight size={18} color="#71717a" strokeWidth={2} />
-          </TouchableOpacity>
         </View>
 
         {/* Security Footer Note */}

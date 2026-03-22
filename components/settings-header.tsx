@@ -10,10 +10,11 @@ import { useThemeStore } from '@/store/theme-store';
 interface SettingsHeaderProps {
   title: string;
   icon?: any;
+  iconColor?: string;
   rightElement?: React.ReactNode;
 }
 
-export function SettingsHeader({ title, icon: Icon, rightElement }: SettingsHeaderProps) {
+export function SettingsHeader({ title, icon: Icon, iconColor, rightElement }: SettingsHeaderProps) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { colorScheme } = useColorScheme();
@@ -34,7 +35,7 @@ export function SettingsHeader({ title, icon: Icon, rightElement }: SettingsHead
           <View className="flex-row items-center">
             {Icon && (
               <View className="mr-3 h-8 w-8 items-center justify-center rounded-lg bg-brand/10">
-                <Icon size={18} color={brandColor} strokeWidth={2.5} />
+                <Icon size={18} color={iconColor || brandColor} strokeWidth={2.5} />
               </View>
             )}
             <Text className="text-xl font-bold tracking-tight text-foreground">{title}</Text>

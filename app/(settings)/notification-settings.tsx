@@ -1,16 +1,8 @@
 import React from 'react';
 import { Text } from '@/components/ui/text';
-import {
-  View,
-  TouchableOpacity,
-  ScrollView,
-  ActivityIndicator,
-  Alert,
-  Platform,
-} from 'react-native';
+import { View, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  ArrowLeft,
   Bell,
   MessageSquare,
   Users,
@@ -22,22 +14,26 @@ import {
   Moon,
   Clock,
   ChevronRight,
-  ShieldCheck,
   Music,
 } from 'lucide-react-native';
-import { useRouter } from 'expo-router';
 import { useColorScheme } from 'nativewind';
 import { Switch } from '@/components/ui/switch';
 import { Drawer } from '@/components/ui/drawer';
 import * as Haptics from 'expo-haptics';
 import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
+import { isDevice } from 'expo-device';
 import Constants from 'expo-constants';
-import { useNotificationSettings, useUpdateNotificationSettings } from '@/hooks/use-user';
+import {
+  getActiveUsersRowIdForAuth,
+  useNotificationSettings,
+  useUpdateNotificationSettings,
+} from '@/hooks/use-user';
+import { useAuth } from '@/contexts/auth-context';
 import dayjs from 'dayjs';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAudioPlayer } from 'expo-audio';
 import { useThemeStore } from '@/store/theme-store';
+import { SETTINGS_MENU_LIST_CLASS, cnSettingsMenuCard } from '@/lib/settings-ui';
 
 // ─── Constants ──────────────────────────────────────────────
 
@@ -79,9 +75,8 @@ const TIME_OPTIONS = [
 // ─── Helper Components ──────────────────────────────────────
 
 const SettingRow = React.memo(
-  ({ icon: Icon, label, description, value, onToggle, brandColor, isLast = false }: any) => (
-    <View
-      className={`flex-row items-center justify-between py-4 ${!isLast ? 'border-b border-border/5' : ''}`}>
+  ({ icon: Icon, label, description, value, onToggle, brandColor }: any) => (
+    <View className={cnSettingsMenuCard('flex-row items-center justify-between')}>
       <TouchableOpacity
         activeOpacity={0.7}
         onPress={() => onToggle(!value)}
@@ -104,11 +99,11 @@ const SettingRow = React.memo(
 );
 
 const NavigationRow = React.memo(
-  ({ icon: Icon, label, value, onPress, brandColor, isLast = false }: any) => (
+  ({ icon: Icon, label, value, onPress, brandColor }: any) => (
     <TouchableOpacity
       activeOpacity={0.7}
       onPress={onPress}
-      className={`flex-row items-center justify-between py-4 ${!isLast ? 'border-b border-border/5' : ''}`}>
+      className={cnSettingsMenuCard('flex-row items-center justify-between')}>
       <View className="mr-4 flex-1 flex-row items-center">
         <View className="mr-4 h-9 w-9 items-center justify-center rounded-xl bg-brand/5">
           <Icon size={18} color={brandColor} strokeWidth={2} />
@@ -172,12 +167,12 @@ const getQuietDuration = (start: string, end: string) => {
 
 export default function NotificationSettingsScreen() {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
   const brandColor = useThemeStore((state) => state.accentColor);
+  const { user } = useAuth();
 
-  const { data: serverSettings, isLoading } = useNotificationSettings();
+  const { data: serverSettings, isLoading, isFetching, isError } = useNotificationSettings();
   const updateSettings = useUpdateNotificationSettings();
 
   const [localSettings, setLocalSettings] = React.useState<any>(null);
@@ -188,7 +183,6 @@ export default function NotificationSettingsScreen() {
   >(null);
   const [currentTime, setCurrentTime] = React.useState(dayjs());
   const [isTestingSound, setIsTestingSound] = React.useState(false);
-  const [hasSystemPermission, setHasSystemPermission] = React.useState<boolean | null>(null);
   const isMounted = React.useRef(true);
 
   React.useEffect(() => {
@@ -215,30 +209,63 @@ export default function NotificationSettingsScreen() {
     return () => clearInterval(timer);
   }, []);
 
-  // Sync Check: Verify system permissions on load
-  React.useEffect(() => {
-    const checkPermissions = async () => {
-      const { status } = await Notifications.getPermissionsAsync();
-      setHasSystemPermission(status === 'granted');
+  const registerPushToken = React.useCallback(async (): Promise<string | null> => {
+    if (!isDevice) return null;
+    try {
+      return (
+        await Notifications.getExpoPushTokenAsync({
+          projectId: Constants.expoConfig?.extra?.eas?.projectId,
+        })
+      ).data;
+    } catch {
+      return null;
+    }
+  }, []);
 
-      // If setting is ON but system is OFF, try to register
-      if (localSettings?.show_notifications && status !== 'granted') {
-        requestSystemPermission();
-      }
-    };
-    if (localSettings && isMounted.current) checkPermissions();
-  }, [localSettings?.show_notifications]);
-
+  // Initialize local state when the query finishes: either from the row or defaults (no row / RLS fixed).
   React.useEffect(() => {
-    if (serverSettings && !localSettings && isMounted.current) {
-      const initialized = {
+    if (!isMounted.current || isLoading || isFetching || localSettings) return;
+
+    if (serverSettings) {
+      setLocalSettings({
         ...serverSettings,
+        show_notifications: serverSettings.show_notifications ?? true,
         quiet_hours_start: serverSettings.quiet_hours_start || '22:00',
         quiet_hours_end: serverSettings.quiet_hours_end || '08:00',
-      };
-      setLocalSettings(initialized);
+      });
+      return;
     }
-  }, [serverSettings]);
+
+    let cancelled = false;
+    (async () => {
+      let profileId: string | null = null;
+      try {
+        profileId = user?.id ? await getActiveUsersRowIdForAuth(user.id) : null;
+      } catch {
+        profileId = null;
+      }
+      if (cancelled || !isMounted.current) return;
+      setLocalSettings({
+        user_id: profileId ?? '',
+        show_notifications: true,
+        show_previews: true,
+        reaction_notifications: true,
+        group_notifications: true,
+        call_notifications: true,
+        in_app_sounds: true,
+        in_app_vibrate: true,
+        expo_push_token: null,
+        mute_until: null,
+        quiet_hours_enabled: false,
+        quiet_hours_start: '22:00',
+        quiet_hours_end: '08:00',
+      });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoading, isFetching, serverSettings, localSettings, user?.id]);
 
   const playTestSound = async () => {
     if (testPlayer.playing || isTestingSound) return;
@@ -259,69 +286,26 @@ export default function NotificationSettingsScreen() {
     }
   };
 
-  const requestSystemPermission = async () => {
-    try {
-      const { status } = await Notifications.requestPermissionsAsync();
-      setHasSystemPermission(status === 'granted');
-      return status === 'granted';
-    } catch (e) {
-      console.log('Permission Request Error:', e);
-      return false;
-    }
-  };
-
-  const registerPushToken = async () => {
-    if (!Device.isDevice) return null;
-    try {
-      const token = (
-        await Notifications.getExpoPushTokenAsync({
-          projectId: Constants.expoConfig?.extra?.eas?.projectId,
-        })
-      ).data;
-      return token;
-    } catch (error: any) {
-      // Background fail - keep it quiet
-      return null;
-    }
-  };
-
   const handleToggle = React.useCallback(
     async (key: string, value: boolean) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-      // If turning ON notifications, check system permission first
-      if (key === 'show_notifications' && value) {
-        const granted = await requestSystemPermission();
-        if (!granted) {
-          Alert.alert(
-            'Permissions Required',
-            'Notifications are blocked in your device settings. Please enable them to continue.',
-            [{ text: 'OK' }]
-          );
-          // Keep local + remote state aligned with actual OS permission.
-          setLocalSettings((prev: any) => ({
-            ...prev,
-            show_notifications: false,
-            expo_push_token: null,
-          }));
-          updateSettings.mutate({ show_notifications: false, expo_push_token: null });
-          return;
-        } else {
-          // If granted, try to get push token in background
+      if (key === 'show_notifications') {
+        setLocalSettings((prev: any) => ({
+          ...prev,
+          show_notifications: value,
+          ...(value ? {} : { expo_push_token: null }),
+        }));
+        if (value) {
           const token = await registerPushToken();
-          if (token) {
-            updateSettings.mutate({ [key]: value, expo_push_token: token });
-            setLocalSettings((prev: any) => ({
-              ...prev,
-              [key]: value,
-              expo_push_token: token,
-            }));
-            return;
-          }
-          setLocalSettings((prev: any) => ({ ...prev, [key]: value }));
-          updateSettings.mutate({ [key]: value });
-          return;
+          updateSettings.mutate({
+            show_notifications: true,
+            ...(token ? { expo_push_token: token } : {}),
+          });
+        } else {
+          updateSettings.mutate({ show_notifications: false, expo_push_token: null });
         }
+        return;
       }
 
       setLocalSettings((prev: any) => ({ ...prev, [key]: value }));
@@ -344,7 +328,7 @@ export default function NotificationSettingsScreen() {
 
       updateSettings.mutate({ [key]: value });
     },
-    [localSettings, updateSettings]
+    [localSettings, registerPushToken, updateSettings]
   );
 
   const handleSnooze = (minutes: number) => {
@@ -382,7 +366,7 @@ export default function NotificationSettingsScreen() {
     setEditingTimeKey(null);
   };
 
-  if (isLoading || !localSettings) {
+  if ((isLoading && !isError) || !localSettings) {
     return (
       <View className="flex-1 items-center justify-center bg-background">
         <ActivityIndicator size="small" color={brandColor} />
@@ -412,44 +396,18 @@ export default function NotificationSettingsScreen() {
         className="flex-1"
         contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
         showsVerticalScrollIndicator={false}>
-        {/* Permission Warning Banner */}
-        {hasSystemPermission === false && localSettings.show_notifications && (
-          <View className="mx-6 mt-6 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4">
-            <View className="mb-1.5 flex-row items-center">
-              <ShieldCheck size={18} color="#f59e0b" strokeWidth={2.5} />
-              <Text className="ml-2 text-[14px] font-bold text-amber-500">
-                System Permissions Required
-              </Text>
-            </View>
-            <Text className="mb-3 text-[12px] leading-5 text-amber-500/80">
-              Notifications are disabled in your device settings. You won't receive any alerts until
-              this is fixed.
-            </Text>
-            <TouchableOpacity
-              onPress={() => requestSystemPermission()}
-              className="items-center rounded-lg bg-amber-500 py-2">
-              <Text className="text-[12px] font-bold text-white">Fix Permissions</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
         {/* Master Toggle */}
         <View className="border-b border-border/5 px-6 py-6">
-          <SettingRow
-            icon={Bell}
-            label="Show Notifications"
-            description={
-              hasSystemPermission === false
-                ? '⚠️ Blocked in Device Settings'
-                : hasSystemPermission === true
-                  ? 'System Status: Active'
-                  : 'Receive alerts for new messages'
-            }
-            value={localSettings.show_notifications}
-            onToggle={(v: boolean) => handleToggle('show_notifications', v)}
-            brandColor={brandColor}
-            isLast={true}
-          />
+          <View className={SETTINGS_MENU_LIST_CLASS}>
+            <SettingRow
+              icon={Bell}
+              label="Show Notifications"
+              description="Receive alerts for new messages"
+              value={localSettings.show_notifications}
+              onToggle={(v: boolean) => handleToggle('show_notifications', v)}
+              brandColor={brandColor}
+            />
+          </View>
         </View>
 
         {/* Silence Section */}
@@ -458,23 +416,24 @@ export default function NotificationSettingsScreen() {
             Silence
           </Text>
 
-          <NavigationRow
-            icon={Clock}
-            label="Snooze Alerts"
-            value={getMuteStatus()}
-            onPress={() => setIsSnoozeDrawerVisible(true)}
-            brandColor={brandColor}
-          />
+          <View className={SETTINGS_MENU_LIST_CLASS}>
+            <NavigationRow
+              icon={Clock}
+              label="Snooze Alerts"
+              value={getMuteStatus()}
+              onPress={() => setIsSnoozeDrawerVisible(true)}
+              brandColor={brandColor}
+            />
 
-          <SettingRow
-            icon={Moon}
-            label="Quiet Hours"
-            description="Automatically silence alerts during night."
-            value={localSettings.quiet_hours_enabled}
-            onToggle={(v: boolean) => handleToggle('quiet_hours_enabled', v)}
-            brandColor={brandColor}
-            isLast={!localSettings.quiet_hours_enabled}
-          />
+            <SettingRow
+              icon={Moon}
+              label="Quiet Hours"
+              description="Automatically silence alerts during night."
+              value={localSettings.quiet_hours_enabled}
+              onToggle={(v: boolean) => handleToggle('quiet_hours_enabled', v)}
+              brandColor={brandColor}
+            />
+          </View>
 
           {localSettings.quiet_hours_enabled && (
             <View>
@@ -521,24 +480,25 @@ export default function NotificationSettingsScreen() {
             Messages
           </Text>
 
-          <SettingRow
-            icon={Eye}
-            label="Show Previews"
-            description="Display message text in notifications."
-            value={localSettings.show_previews}
-            onToggle={(v: boolean) => handleToggle('show_previews', v)}
-            brandColor={brandColor}
-          />
+          <View className={SETTINGS_MENU_LIST_CLASS}>
+            <SettingRow
+              icon={Eye}
+              label="Show Previews"
+              description="Display message text in notifications."
+              value={localSettings.show_previews}
+              onToggle={(v: boolean) => handleToggle('show_previews', v)}
+              brandColor={brandColor}
+            />
 
-          <SettingRow
-            icon={Heart}
-            label="Reaction Notifications"
-            description="Notify when someone reacts to your message."
-            value={localSettings.reaction_notifications}
-            onToggle={(v: boolean) => handleToggle('reaction_notifications', v)}
-            brandColor={brandColor}
-            isLast={true}
-          />
+            <SettingRow
+              icon={Heart}
+              label="Reaction Notifications"
+              description="Notify when someone reacts to your message."
+              value={localSettings.reaction_notifications}
+              onToggle={(v: boolean) => handleToggle('reaction_notifications', v)}
+              brandColor={brandColor}
+            />
+          </View>
         </View>
 
         {/* Categories */}
@@ -547,24 +507,25 @@ export default function NotificationSettingsScreen() {
             Categories
           </Text>
 
-          <SettingRow
-            icon={Users}
-            label="Group Notifications"
-            description="Manage alerts for group conversations."
-            value={localSettings.group_notifications}
-            onToggle={(v: boolean) => handleToggle('group_notifications', v)}
-            brandColor={brandColor}
-          />
+          <View className={SETTINGS_MENU_LIST_CLASS}>
+            <SettingRow
+              icon={Users}
+              label="Group Notifications"
+              description="Manage alerts for group conversations."
+              value={localSettings.group_notifications}
+              onToggle={(v: boolean) => handleToggle('group_notifications', v)}
+              brandColor={brandColor}
+            />
 
-          <SettingRow
-            icon={Phone}
-            label="Call Notifications"
-            description="Alerts for incoming voice and video calls."
-            value={localSettings.call_notifications}
-            onToggle={(v: boolean) => handleToggle('call_notifications', v)}
-            brandColor={brandColor}
-            isLast={true}
-          />
+            <SettingRow
+              icon={Phone}
+              label="Call Notifications"
+              description="Alerts for incoming voice and video calls."
+              value={localSettings.call_notifications}
+              onToggle={(v: boolean) => handleToggle('call_notifications', v)}
+              brandColor={brandColor}
+            />
+          </View>
         </View>
 
         {/* In-App Behavior */}
@@ -573,32 +534,33 @@ export default function NotificationSettingsScreen() {
             In-App Behavior
           </Text>
 
-          <SettingRow
-            icon={Volume2}
-            label="In-App Sounds"
-            description="Play sounds for incoming events while in app."
-            value={localSettings.in_app_sounds}
-            onToggle={(v: boolean) => handleToggle('in_app_sounds', v)}
-            brandColor={brandColor}
-          />
+          <View className={SETTINGS_MENU_LIST_CLASS}>
+            <SettingRow
+              icon={Volume2}
+              label="In-App Sounds"
+              description="Play sounds for incoming events while in app."
+              value={localSettings.in_app_sounds}
+              onToggle={(v: boolean) => handleToggle('in_app_sounds', v)}
+              brandColor={brandColor}
+            />
 
-          <NavigationRow
-            icon={Music}
-            label="Play Test Sound"
-            value={isTestingSound ? 'Testing...' : 'Ready'}
-            onPress={playTestSound}
-            brandColor={brandColor}
-          />
+            <NavigationRow
+              icon={Music}
+              label="Play Test Sound"
+              value={isTestingSound ? 'Testing...' : 'Ready'}
+              onPress={playTestSound}
+              brandColor={brandColor}
+            />
 
-          <SettingRow
-            icon={Vibrate}
-            label="In-App Vibrate"
-            description="Vibration feedback for in-app events."
-            value={localSettings.in_app_vibrate}
-            onToggle={(v: boolean) => handleToggle('in_app_vibrate', v)}
-            brandColor={brandColor}
-            isLast={true}
-          />
+            <SettingRow
+              icon={Vibrate}
+              label="In-App Vibrate"
+              description="Vibration feedback for in-app events."
+              value={localSettings.in_app_vibrate}
+              onToggle={(v: boolean) => handleToggle('in_app_vibrate', v)}
+              brandColor={brandColor}
+            />
+          </View>
         </View>
 
         {/* Security Info */}

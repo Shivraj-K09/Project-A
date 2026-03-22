@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { vars, useColorScheme } from 'nativewind';
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { View } from 'react-native';
 
 export function hexToHsl(hex: string): string {
@@ -31,20 +31,26 @@ export function hexToHsl(hex: string): string {
   return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 }
 
+export type BubbleShape = 'round' | 'soft' | 'sharp';
+
 interface ThemeState {
   accentColor: string;
-  language: string;
+  bubbleShape: BubbleShape;
+  stealthMode: boolean;
   setAccentColor: (color: string) => void;
-  setLanguage: (lang: string) => void;
+  setBubbleShape: (shape: BubbleShape) => void;
+  setStealthMode: (enabled: boolean) => void;
 }
 
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set) => ({
       accentColor: '#6366f1',
-      language: 'en',
+      bubbleShape: 'round',
+      stealthMode: false,
       setAccentColor: (color) => set({ accentColor: color }),
-      setLanguage: (lang) => set({ language: lang }),
+      setBubbleShape: (shape) => set({ bubbleShape: shape }),
+      setStealthMode: (enabled) => set({ stealthMode: enabled }),
     }),
     {
       name: 'app-theme-storage',
@@ -54,21 +60,9 @@ export const useThemeStore = create<ThemeState>()(
 );
 
 export function AppThemeProvider({ children }: { children: React.ReactNode }) {
-  const [isHydrated, setIsHydrated] = useState(false);
   const accentColor = useThemeStore((state) => state.accentColor);
-
-  useEffect(() => {
-    // Check if store is already hydrated
-    if (useThemeStore.persist.hasHydrated()) {
-      setIsHydrated(true);
-    } else {
-      // Listen for hydration finish
-      const unsub = useThemeStore.persist.onFinishHydration(() => {
-        setIsHydrated(true);
-      });
-      return unsub;
-    }
-  }, []);
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
 
   const themeVars = useMemo(() => {
     return vars({
@@ -76,22 +70,25 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
     });
   }, [accentColor]);
 
-  // Prevent rendering until theme is loaded from storage
-  if (!isHydrated) return null;
-
-  return <View style={[themeVars, { flex: 1 }]}>{children}</View>;
+  // Always mount the app tree. Waiting on persist hydration left `children === null` and produced a
+  // solid black/white screen (only this View's background) when AsyncStorage was slow or stalled.
+  return (
+    <View style={[themeVars, { flex: 1, backgroundColor: isDark ? '#000' : '#fff' }]}>
+      {children}
+    </View>
+  );
 }
 
-/**
- * Simplified hook to get common theme values in one line.
- * @example const { brandColor, isDark } = useAppTheme();
- */
 export function useAppTheme() {
   const accentColor = useThemeStore((state) => state.accentColor);
   const { colorScheme } = useColorScheme();
+  
+  // Safe check for development
+  const isDark = colorScheme === 'dark';
+  
   return {
     brandColor: accentColor,
-    isDark: colorScheme === 'dark',
-    accentColor, // Alias for convenience
+    isDark,
+    accentColor,
   };
 }

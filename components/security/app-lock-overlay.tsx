@@ -1,4 +1,4 @@
-import { View, ActivityIndicator, TouchableOpacity, AppState, type AppStateStatus } from 'react-native';
+import { View, ActivityIndicator, TouchableOpacity, AppState, type AppStateStatus, StyleSheet } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Lock } from 'lucide-react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
@@ -14,50 +14,91 @@ export default function AppLockOverlay({
   const [isEnabled, setIsEnabled] = useState<boolean | null>(null);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [hasBiometrics, setHasBiometrics] = useState<boolean | null>(null);
   const appState = useRef(AppState.currentState);
+  const authTimeoutRef = useRef<any>(null);
 
-  const refreshLockState = useCallback(async () => {
-    const enabled = await getAppLockEnabled();
-    setIsEnabled(enabled);
-    if (!enabled) {
-      setIsUnlocked(true);
+  const checkAvailability = useCallback(async () => {
+    try {
+      const compatible = await LocalAuthentication.hasHardwareAsync();
+      const enrolled = await LocalAuthentication.isEnrolledAsync();
+      setHasBiometrics(compatible && enrolled);
+      return compatible && enrolled;
+    } catch (err) {
+      setHasBiometrics(false);
+      return false;
     }
   }, []);
 
-  useEffect(() => {
-    void refreshLockState();
-
-    const unsubscribe = subscribeToAppLockChanges((enabled) => {
+  const refreshLockState = useCallback(async () => {
+    try {
+      const enabled = await getAppLockEnabled();
       setIsEnabled(enabled);
-      setIsUnlocked(!enabled);
-    });
-
-    return unsubscribe;
-  }, [refreshLockState]);
+      if (!enabled) setIsUnlocked(true);
+      return enabled;
+    } catch (err) {
+      setIsEnabled(false);
+      setIsUnlocked(true);
+      return false;
+    }
+  }, []);
 
   const handleAuthenticate = useCallback(async () => {
     if (isAuthenticating) return;
 
+    const available = await checkAvailability();
+    if (!available) {
+      setIsUnlocked(true);
+      return;
+    }
+
     setIsAuthenticating(true);
     try {
       const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: 'Unlock Gravity',
+        promptMessage: 'Unlock Social Media',
         fallbackLabel: 'Use Passcode',
+        disableDeviceFallback: false,
       });
 
       if (result.success) {
         setIsUnlocked(true);
       }
+    } catch (err) {
+      console.error('[AppLock] Auth error:', err);
     } finally {
       setIsAuthenticating(false);
     }
-  }, [isAuthenticating]);
+  }, [isAuthenticating, checkAvailability]);
 
   useEffect(() => {
-    if (isEnabled && !isUnlocked && !isAuthenticating) {
-      void handleAuthenticate();
-    }
-  }, [handleAuthenticate, isAuthenticating, isEnabled, isUnlocked]);
+    let isMounted = true;
+
+    const init = async () => {
+      const enabled = await refreshLockState();
+      await checkAvailability();
+      
+      if (isMounted && enabled) {
+        authTimeoutRef.current = setTimeout(() => {
+          if (!isUnlocked) void handleAuthenticate();
+        }, 600);
+      }
+    };
+
+    void init();
+
+    const unsubscribe = subscribeToAppLockChanges((enabled) => {
+      if (isMounted) {
+        setIsEnabled(enabled);
+        setIsUnlocked(!enabled);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+      if (authTimeoutRef.current) clearTimeout(authTimeoutRef.current);
+    };
+  }, [refreshLockState, handleAuthenticate, checkAvailability]);
 
   useEffect(() => {
     const handleAppStateChange = async (nextState: AppStateStatus) => {
@@ -68,7 +109,12 @@ export default function AppLockOverlay({
       if (wasInBackground) {
         const enabled = await getAppLockEnabled();
         setIsEnabled(enabled);
-        setIsUnlocked(!enabled);
+        if (enabled) {
+          setIsUnlocked(false);
+          setTimeout(() => void handleAuthenticate(), 300);
+        } else {
+          setIsUnlocked(true);
+        }
       } else if (movedToBackground && isEnabled) {
         setIsUnlocked(false);
       }
@@ -78,7 +124,7 @@ export default function AppLockOverlay({
 
     const sub = AppState.addEventListener('change', handleAppStateChange);
     return () => sub.remove();
-  }, [isEnabled]);
+  }, [isEnabled, handleAuthenticate]);
 
   const brandColor = useThemeStore((state) => state.accentColor);
 
@@ -86,27 +132,42 @@ export default function AppLockOverlay({
   if (!isEnabled || isUnlocked) return children;
 
   return (
-    <View className="flex-1 items-center justify-center bg-background px-8">
-      <View className="mb-10 items-center">
-        <View className="mb-6 h-24 w-24 items-center justify-center rounded-[32px] border border-brand/20 bg-brand/5 shadow-sm">
-          <Lock size={48} color={brandColor} strokeWidth={2.5} />
+    <View style={StyleSheet.absoluteFill} className="z-[9999] items-center justify-center bg-background px-12">
+      <View className="w-full items-center">
+        <View className="mb-8 items-center justify-center">
+          <View className="h-20 w-20 items-center justify-center rounded-3xl bg-muted/30">
+            <Lock size={32} color={brandColor} strokeWidth={1.5} />
+          </View>
         </View>
-        <Text className="text-center text-3xl font-bold tracking-tight text-foreground">App Locked</Text>
-        <Text className="mt-4 px-6 text-center text-[15px] leading-6 text-muted-foreground/80">
-          Biometric authentication is required to access your account.
-        </Text>
-      </View>
 
-      <TouchableOpacity
-        activeOpacity={0.8}
-        onPress={() => void handleAuthenticate()}
-        className="h-16 w-full items-center justify-center rounded-2xl bg-brand shadow-lg">
-        {isAuthenticating ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text className="text-lg font-bold text-white">Unlock App</Text>
+        <Text className="text-[24px] font-semibold text-foreground">
+          App Locked
+        </Text>
+        
+        <Text className="mt-3 text-center text-[15px] leading-6 text-muted-foreground">
+          Biometric authentication required to access your account.
+        </Text>
+
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => void handleAuthenticate()}
+          disabled={isAuthenticating}
+          className="mt-12 h-14 w-full items-center justify-center rounded-2xl bg-brand"
+        >
+          {isAuthenticating ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text className="text-[16px] font-semibold text-white">Unlock</Text>
+          )}
+        </TouchableOpacity>
+        
+        {!hasBiometrics && hasBiometrics !== null && (
+          <Text className="mt-6 text-[13px] text-destructive/80 font-medium">
+            Biometrics unavailable. Try device passcode.
+          </Text>
         )}
-      </TouchableOpacity>
+      </View>
     </View>
   );
 }
+
