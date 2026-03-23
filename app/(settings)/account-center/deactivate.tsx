@@ -73,7 +73,8 @@ export default function DeactivateAccountScreen() {
         }}
         showsVerticalScrollIndicator={false}>
         <Text className="max-w-[520px] text-[15px] leading-[24px] text-muted-foreground">
-          Pause your presence without losing your account. You can reactivate when you&apos;re ready.
+          Pause your presence without losing your account. You can reactivate when you&apos;re
+          ready.
         </Text>
 
         <Text className="mb-2.5 mt-11 text-[12px] font-medium uppercase tracking-[0.08em] text-muted-foreground/80">
@@ -89,7 +90,9 @@ export default function DeactivateAccountScreen() {
                   className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full"
                   style={{ backgroundColor: brandColor, opacity: 0.55 }}
                 />
-                <Text className="flex-1 text-[14px] leading-[22px] text-muted-foreground">{line}</Text>
+                <Text className="flex-1 text-[14px] leading-[22px] text-muted-foreground">
+                  {line}
+                </Text>
               </View>
             </View>
           ))}
@@ -107,8 +110,7 @@ export default function DeactivateAccountScreen() {
             shadowOpacity: isDark ? 0.35 : 0.12,
             shadowRadius: 10,
             elevation: 3,
-          }}
-        >
+          }}>
           {isWorking || deactivate.isPending ? (
             <ActivityIndicator color="#fff" size="small" />
           ) : (

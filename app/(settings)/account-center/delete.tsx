@@ -12,24 +12,24 @@ import { useArchiveAccount } from '@/hooks/use-user';
 import { useAppTheme } from '@/store/theme-store';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import { Trash2, AlertTriangle, ShieldAlert, X } from 'lucide-react-native';
+import { AlertTriangle, ShieldAlert, Trash2, X } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
-  View,
-  TouchableOpacity,
   Modal,
   Pressable,
+  TouchableOpacity,
   useWindowDimensions,
+  View,
 } from 'react-native';
 import Animated, {
+  Easing,
   FadeInDown,
   useAnimatedStyle,
+  useSharedValue,
   withRepeat,
   withSequence,
   withTiming,
-  Easing,
-  useSharedValue,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 

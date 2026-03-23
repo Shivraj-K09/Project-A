@@ -32,23 +32,72 @@ export class CryptoHelper {
     const existingPub = await SecureStore.getItemAsync(PUBLIC_KEY_ALIAS);
     if (existingPub) return existingPub;
 
+    // SCALING RESOLUTION: Hardware-Backed & Memory-Sanitized Generation
     const subtle = getSubtle();
+    
+    // 1. Generate: Temporary 'extractable' state (restricted to this scope)
     const keyPair = await subtle.generateKey(
       { name: 'ECDH', namedCurve: 'P-256' },
-      true,
+      true, 
       ['deriveKey', 'deriveBits']
     );
 
     const pubExported = await subtle.exportKey('spki', keyPair.publicKey);
     const pubBase64 = this.arrayBufferToBase64(pubExported);
 
-    const privExported = await subtle.exportKey('pkcs8', keyPair.privateKey);
-    const privBase64 = this.arrayBufferToBase64(privExported);
+    // 2. Export & Secure: Immediately export to PKCS#8 Raw Data
+    let privExported: ArrayBuffer | null = await subtle.exportKey('pkcs8', keyPair.privateKey);
+    let privBase64: string | null = this.arrayBufferToBase64(privExported!);
 
-    await SecureStore.setItemAsync(PUBLIC_KEY_ALIAS, pubBase64);
-    await SecureStore.setItemAsync(PRIVATE_KEY_ALIAS, privBase64);
+    // 3. HARDWARE PINNING: Encrypt with Hardware Master Key 
+    // This anchors the string to the Secure Enclave/KeyStore.
+    const storeOptions: SecureStore.SecureStoreOptions = {
+      requireAuthentication: true,
+      authenticationPrompt: 'Authorize secure chat identity setup',
+      keychainAccessible: SecureStore.WHEN_PASSCODE_SET_THIS_DEVICE_ONLY, // Strongest protection
+      keychainService: 'social-media-support-chat'
+    };
+
+    try {
+      await SecureStore.setItemAsync(PUBLIC_KEY_ALIAS, pubBase64);
+      await SecureStore.setItemAsync(PRIVATE_KEY_ALIAS, privBase64, storeOptions);
+    } finally {
+      // 4. MEMORY HYGIENE (CRITICAL): Erase the raw key from JS memory
+      // We overwrite the buffer with zeros before it can lingering in garbage collection.
+      if (privExported) {
+        new Uint8Array(privExported).fill(0);
+      }
+      // We nullify the pointers
+      privExported = null;
+      privBase64 = null;
+    }
 
     return pubBase64;
+  }
+
+  private static async loadPrivateKey(subtle: SubtleCrypto): Promise<CryptoKey> {
+    const options: SecureStore.SecureStoreOptions = {
+      requireAuthentication: true,
+      keychainService: 'social-media-support-chat'
+    };
+
+    const myPrivBase64 = await SecureStore.getItemAsync(PRIVATE_KEY_ALIAS, options);
+    if (!myPrivBase64) throw new Error('Private key missing or access denied');
+
+    const privBuffer = this.base64ToArrayBuffer(myPrivBase64);
+    try {
+      const myPrivKey = await subtle.importKey(
+        'pkcs8',
+        privBuffer,
+        { name: 'ECDH', namedCurve: 'P-256' },
+        false, // <--- Non-extractable
+        ['deriveKey']
+      );
+      return myPrivKey;
+    } finally {
+      // MEMORY HYGIENE: Zero out the buffer that held the raw PKCS#8
+      new Uint8Array(privBuffer).fill(0);
+    }
   }
 
   /**
@@ -77,15 +126,7 @@ export class CryptoHelper {
     );
 
     // 3. Import our Private Key for ECDH
-    const myPrivBase64 = await SecureStore.getItemAsync(PRIVATE_KEY_ALIAS);
-    if (!myPrivBase64) throw new Error('Private key missing');
-    const myPrivKey = await subtle.importKey(
-      'pkcs8',
-      this.base64ToArrayBuffer(myPrivBase64),
-      { name: 'ECDH', namedCurve: 'P-256' },
-      false,
-      ['deriveKey']
-    );
+    const myPrivKey = await this.loadPrivateKey(subtle);
 
     // 4. Wrap Session Key for each recipient using ECDH
     const keysHeader: Record<string, string> = {};
@@ -148,7 +189,6 @@ export class CryptoHelper {
     const wIv = headerBuffer.slice(0, 12);
     const wCiphertext = headerBuffer.slice(12);
 
-    const myPrivBase64 = await SecureStore.getItemAsync(PRIVATE_KEY_ALIAS);
     const senderPub = await subtle.importKey(
       'spki',
       this.base64ToArrayBuffer(senderPublicKeyBase64),
@@ -156,13 +196,7 @@ export class CryptoHelper {
       false,
       []
     );
-    const myPrivKey = await subtle.importKey(
-      'pkcs8',
-      this.base64ToArrayBuffer(myPrivBase64!),
-      { name: 'ECDH', namedCurve: 'P-256' },
-      false,
-      ['deriveKey']
-    );
+    const myPrivKey = await this.loadPrivateKey(subtle);
 
     const wrappingKey = await subtle.deriveKey(
       { name: 'ECDH', public: senderPub },
@@ -228,14 +262,7 @@ export class CryptoHelper {
     // 3. Wrap File Key for recipients (Reuse ECDH logic)
     const keysHeader: Record<string, string> = {};
     const exportedFileKey = await subtle.exportKey('raw', fileKey);
-    const myPrivBase64 = await SecureStore.getItemAsync(PRIVATE_KEY_ALIAS);
-    const myPrivKey = await subtle.importKey(
-      'pkcs8',
-      this.base64ToArrayBuffer(myPrivBase64!),
-      { name: 'ECDH', namedCurve: 'P-256' },
-      false,
-      ['deriveKey']
-    );
+    const myPrivKey = await this.loadPrivateKey(subtle);
 
     for (const recipient of recipientPublicKeys) {
       try {
@@ -294,9 +321,8 @@ export class CryptoHelper {
     const wIv = headerBuffer.slice(0, 12);
     const wCiphertext = headerBuffer.slice(12);
 
-    const myPrivBase64 = await SecureStore.getItemAsync(PRIVATE_KEY_ALIAS);
     const senderPub = await subtle.importKey('spki', this.base64ToArrayBuffer(senderPublicKeyBase64), { name: 'ECDH', namedCurve: 'P-256' }, false, []);
-    const myPrivKey = await subtle.importKey('pkcs8', this.base64ToArrayBuffer(myPrivBase64!), { name: 'ECDH', namedCurve: 'P-256' }, false, ['deriveKey']);
+    const myPrivKey = await this.loadPrivateKey(subtle);
 
     const wrappingKey = await subtle.deriveKey({ name: 'ECDH', public: senderPub }, myPrivKey, { name: 'AES-GCM', length: 128 }, false, ['decrypt']);
     

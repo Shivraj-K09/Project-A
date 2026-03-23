@@ -2,7 +2,7 @@ import React from 'react';
 import { View, TouchableOpacity } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { ChevronLeft } from 'lucide-react-native';
-import { useRouter } from 'expo-router';
+import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
 import { useThemeStore } from '@/store/theme-store';
@@ -16,7 +16,6 @@ interface SettingsHeaderProps {
 
 export function SettingsHeader({ title, icon: Icon, iconColor, rightElement }: SettingsHeaderProps) {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
   const { colorScheme } = useColorScheme();
   const brandColor = useThemeStore((state) => state.accentColor);
   const isDark = colorScheme === 'dark';

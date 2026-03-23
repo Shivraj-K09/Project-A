@@ -1,9 +1,13 @@
-﻿import { CameraView, useCameraPermissions, type CameraType } from 'expo-camera';
+import { CameraView, useCameraPermissions, type CameraType } from 'expo-camera';
 import { useRouter } from 'expo-router';
-import { X, FlipHorizontal as FlipIcon } from 'lucide-react-native';
+import { FlipHorizontal as FlipIcon, X } from 'lucide-react-native';
 import { useRef, useState } from 'react';
-import { Pressable, StyleSheet, View, Text, Image, Alert, ActivityIndicator } from 'react-native';
+import { ActivityIndicator, Alert, Image, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { cssInterop } from 'nativewind';
+import { cn } from '@/lib/utils';
+
+cssInterop(CameraView, { className: 'style' });
 
 export default function CameraScreen() {
   const router = useRouter();
@@ -47,8 +51,8 @@ export default function CameraScreen() {
 
   if (capturedUri) {
     return (
-      <View style={styles.container}>
-        <Image source={{ uri: capturedUri }} style={styles.camera} resizeMode="cover" />
+      <View className="flex-1 bg-black">
+        <Image source={{ uri: capturedUri }} className="flex-1" resizeMode="cover" />
 
         <View
           className="absolute inset-x-0 bottom-0 flex-row items-center justify-between p-6"
@@ -68,8 +72,8 @@ export default function CameraScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <CameraView ref={cameraRef} style={styles.camera} facing={type}>
+    <View className="flex-1 bg-black">
+      <CameraView ref={cameraRef} className="flex-1" facing={type}>
         <View
           className="flex-1 justify-between p-6"
           style={{ paddingTop: insets.top + 20, paddingBottom: insets.bottom + 40 }}>
@@ -80,9 +84,12 @@ export default function CameraScreen() {
           </View>
 
           <View className="flex-row items-center justify-around">
-            <View style={{ width: 40 }} />
+            <View className="w-10" />
             <Pressable
-              className="h-20 w-20 items-center justify-center rounded-full border-4 border-white"
+              className={cn(
+                'h-20 w-20 items-center justify-center rounded-full border-4 border-white',
+                isCapturing && 'opacity-50'
+              )}
               onPress={() => void handleCapture()}
               disabled={isCapturing}>
               {isCapturing ? (
@@ -103,13 +110,3 @@ export default function CameraScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  camera: {
-    flex: 1,
-  },
-});

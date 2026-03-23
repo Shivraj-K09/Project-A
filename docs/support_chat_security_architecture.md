@@ -68,6 +68,7 @@ To ensure messages sent from Mobile can be read on Web (and vice-versa), the sys
 | `is_archived` | boolean | Default: false. True after "End Chat" |
 | `message_type` | text | 'text', 'image', 'file' |
 | `attachment_path` | text | Path to the encrypted blob in Supabase Storage (Null for text) |
+| `metadata` | JSONB | Default: '{}'. Flexible storage for client-side metadata (e.g. `temp_id`) |
 
 ---
 

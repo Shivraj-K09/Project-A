@@ -47,10 +47,10 @@ export default function AppLockOverlay({
     if (isAuthenticating) return;
 
     const available = await checkAvailability();
-    if (!available) {
-      setIsUnlocked(true);
-      return;
-    }
+    // 🛡️ Security Fix: Never fail open. 
+    // If not available, we still attempt authentication because 
+    // authenticateAsync can often fall back to the system PIN/Passcode 
+    // if 'disableDeviceFallback' is false. We simply don't auto-unlock here.
 
     setIsAuthenticating(true);
     try {

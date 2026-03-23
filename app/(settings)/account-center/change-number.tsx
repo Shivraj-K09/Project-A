@@ -3,12 +3,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Text } from '@/components/ui/text';
 import { useToast } from '@/components/ui/toast';
+import { useChangePhoneNumber, useRequestPhoneChangeCode, useUserProfile } from '@/hooks/use-user';
 import { cn } from '@/lib/utils';
 import { useAppTheme } from '@/store/theme-store';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { AlertTriangle, Check, ChevronDown, X } from 'lucide-react-native';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -21,7 +22,6 @@ import {
 } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useUserProfile, useRequestPhoneChangeCode, useChangePhoneNumber } from '@/hooks/use-user';
 
 // ─── Constants ──────────────────────────────────────────────
 const COUNTRY_CODES = [
@@ -38,7 +38,7 @@ export default function ChangeNumberScreen() {
   const router = useRouter();
   const { toast } = useToast();
   const { brandColor, isDark } = useAppTheme();
-  
+
   // Hooks
   const { data: profile } = useUserProfile();
   const requestOtp = useRequestPhoneChangeCode();
@@ -56,7 +56,7 @@ export default function ChangeNumberScreen() {
   const [activePicker, setActivePicker] = useState<'old' | 'new' | null>(null);
   const [countrySearch, setCountrySearch] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // Timer State
   const [countdown, setCountdown] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -65,14 +65,19 @@ export default function ChangeNumberScreen() {
   useEffect(() => {
     if (profile) {
       if (profile.email) setEmail(profile.email);
-      
+
       // Match country code and set phone number without it
       if (profile.phone_number) {
-        const match = COUNTRY_CODES.find(c => profile.phone_number?.startsWith(c.code));
+        // SCALING: Search using normalized digits (stripping '+' from the constant)
+        const match = COUNTRY_CODES.find((c) => 
+          profile.phone_number?.startsWith(c.code.replace('+', ''))
+        );
+        
         if (match) {
+          const cleanPrefix = match.code.replace('+', '');
           setOldCountry(match);
-          // Strip the country code from the stored phone number
-          const digitsOnly = profile.phone_number.slice(match.code.length);
+          // Strip the country code digits from the stored string
+          const digitsOnly = profile.phone_number.slice(cleanPrefix.length);
           setOldPhone(digitsOnly);
         } else {
           setOldPhone(profile.phone_number);
@@ -98,22 +103,20 @@ export default function ChangeNumberScreen() {
   // Validation
   const isEmailValid = email.includes('@');
   const isNewValid = newPhone.length >= newCountry.min;
-  const isOtpValid = otp.length >= 6; 
+  const isOtpValid = otp.length >= 6;
   const isFormValid = isEmailValid && isNewValid && isOtpValid && !isLoading;
 
   const handleSendCode = async () => {
-    if (!isEmailValid || countdown > 0) return;
-    
-    // Security check: Match registered email
-    if (profile?.email && email.toLowerCase() !== profile.email.toLowerCase()) {
-      toast({ message: 'Email does not match our records.', variant: 'error' });
-      return;
-    }
+    if (countdown > 0) return;
 
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       setIsLoading(true);
-      await requestOtp.mutateAsync(email);
+      
+      // 🛡️ SECURITY: The hook now automatically uses the trusted session email.
+      // We no longer pass the email from the client to prevent spam/abuse.
+      await requestOtp.mutateAsync();
+      
       setCountdown(60);
       toast({ message: 'Verification code sent to your email.', variant: 'success' });
     } catch (err: any) {
@@ -125,22 +128,24 @@ export default function ChangeNumberScreen() {
 
   const handleFinish = async () => {
     if (!isFormValid) return;
-    
+
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
       setIsLoading(true);
-      
+
       const cleanEmail = email.trim();
       const cleanOtp = otp.trim();
       const cleanNewPhone = newPhone.trim();
-      
-      console.log('[ChangeNumber] Verifying identity for:', cleanEmail);
-      
+
+      // SCALING RESOLUTION: Normalize by removing everything except digits
+      const fullPhoneNumber = `${newCountry.code}${cleanNewPhone}`.replace(/\D/g, '');
+
+      console.log('[ChangeNumber] Verifying identity with OTP token...');
+
       await changeNumber.mutateAsync({
-        email: cleanEmail,
         token: cleanOtp,
-        newPhone: cleanNewPhone,
-        countryCode: newCountry.code
+        newPhone: fullPhoneNumber,
+        countryCode: newCountry.code,
       });
 
       toast({ message: 'Phone number updated successfully!', variant: 'success' });
@@ -183,18 +188,24 @@ export default function ChangeNumberScreen() {
 
             {/* Old Number */}
             <View className="mb-6">
-              <Label className="mb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-brand" style={{ color: brandColor }}>
+              <Label
+                className="mb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-brand"
+                style={{ color: brandColor }}>
                 Old Phone Number
               </Label>
-              <View 
+              <View
                 className="flex-row items-center overflow-hidden rounded-2xl border-[1.5px] bg-muted/5 opacity-60"
-                style={{ borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }}
-              >
+                style={{ borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }}>
                 <View className="h-14 flex-row items-center gap-2 bg-transparent px-4">
                   <Text className="text-xl">{oldCountry.flag}</Text>
                   <Text className="text-[17px] font-black text-foreground">{oldCountry.code}</Text>
                 </View>
-                <View className="h-6 w-[1.5px]" style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }} />
+                <View
+                  className="h-6 w-[1.5px]"
+                  style={{
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                  }}
+                />
                 <Input
                   value={oldPhone}
                   editable={false}
@@ -206,13 +217,14 @@ export default function ChangeNumberScreen() {
 
             {/* New Number */}
             <View>
-              <Label className="mb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-brand" style={{ color: brandColor }}>
+              <Label
+                className="mb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-brand"
+                style={{ color: brandColor }}>
                 New Phone Number
               </Label>
-              <View 
+              <View
                 className="flex-row items-center overflow-hidden rounded-2xl border-[1.5px] bg-muted/5"
-                style={{ borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }}
-              >
+                style={{ borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }}>
                 <TouchableOpacity
                   activeOpacity={0.7}
                   onPress={() => setActivePicker('new')}
@@ -221,7 +233,12 @@ export default function ChangeNumberScreen() {
                   <Text className="text-[17px] font-black text-foreground">{newCountry.code}</Text>
                   <ChevronDown size={14} color={isDark ? '#fff' : '#000'} strokeWidth={2.5} />
                 </TouchableOpacity>
-                <View className="h-6 w-[1.5px]" style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }} />
+                <View
+                  className="h-6 w-[1.5px]"
+                  style={{
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)',
+                  }}
+                />
                 <Input
                   value={newPhone}
                   onChangeText={setNewPhone}
@@ -247,12 +264,12 @@ export default function ChangeNumberScreen() {
               </Label>
               <Input
                 value={email}
-                onChangeText={setEmail}
-                placeholder="Enter your registered email"
+                editable={false}
+                placeholder="No email on file"
                 keyboardType="email-address"
                 autoCapitalize="none"
                 style={{ borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }}
-                className="h-14 rounded-2xl border-[1.5px] bg-muted/5 px-4 text-[17px] font-bold opacity-80"
+                className="h-14 rounded-2xl border-[1.5px] bg-muted/20 px-4 text-[17px] font-bold opacity-60"
               />
             </View>
 
@@ -276,16 +293,16 @@ export default function ChangeNumberScreen() {
                     )}
                   />
                 </View>
-              <TouchableOpacity
+                <TouchableOpacity
                   onPress={handleSendCode}
                   disabled={!isEmailValid || countdown > 0 || isLoading}
                   className="h-14 items-center justify-center rounded-2xl bg-brand/10 px-6"
-                  style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }}
-                >
-                  <Text 
-                    className="text-[14px] font-bold" 
-                    style={{ color: (isEmailValid && countdown === 0) ? brandColor : '#71717a' }}
-                  >
+                  style={{
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+                  }}>
+                  <Text
+                    className="text-[14px] font-bold"
+                    style={{ color: isEmailValid && countdown === 0 ? brandColor : '#71717a' }}>
                     {countdown > 0 ? `${countdown}s` : 'Send'}
                   </Text>
                 </TouchableOpacity>
@@ -300,8 +317,8 @@ export default function ChangeNumberScreen() {
           <View className="mt-4 flex-row gap-3 rounded-2xl border border-amber-500/10 bg-amber-500/5 p-4">
             <AlertTriangle size={18} color="#f59e0b" style={{ marginTop: 2 }} />
             <Text className="flex-1 text-[13px] leading-5 text-amber-600/80 dark:text-amber-400/60">
-              For your security, we require email identity verification to complete this
-              sensitive change.
+              For your security, we require email identity verification to complete this sensitive
+              change.
             </Text>
           </View>
         </Animated.View>
@@ -360,12 +377,12 @@ export default function ChangeNumberScreen() {
               const currentSelected = activePicker === 'old' ? oldCountry : newCountry;
               return (
                 <TouchableOpacity
-                    onPress={() => {
-                        if (activePicker === 'old') setOldCountry(item);
-                        else setNewCountry(item);
-                        setActivePicker(null);
-                        setCountrySearch('');
-                      }}
+                  onPress={() => {
+                    if (activePicker === 'old') setOldCountry(item);
+                    else setNewCountry(item);
+                    setActivePicker(null);
+                    setCountrySearch('');
+                  }}
                   className="flex-row items-center gap-4 border-b border-border/5 px-6 py-4">
                   <Text className="text-2xl">{item.flag}</Text>
                   <View className="flex-1">

@@ -9,10 +9,15 @@ export const queryClient = new QueryClient({
       gcTime: 30 * 60 * 1000,
       // Retry failed requests 2 times
       retry: 2,
-      // Refetch when app comes back to foreground
-      refetchOnWindowFocus: true,
-      // Refetch when network reconnects
-      refetchOnReconnect: true,
+      /** 
+       * MOBILE OPTIMIZATION:
+       * 
+       * We disable these aggressive refetch triggers globally to save battery 
+       * and data. For a mobile app, window focus and reconnect happen 
+       * constantly (e.g., swiping the notification shade or driving).
+       */
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
     },
     mutations: {
       retry: 1,

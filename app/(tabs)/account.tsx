@@ -1,74 +1,24 @@
+import { SettingsRow } from '@/components/settings/settings-row';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { useUserProfile } from '@/hooks/use-user';
-import { Link, type Href } from 'expo-router';
-import {
-  ActivityIndicator,
-  View,
-  TouchableOpacity,
-  TextInput,
-  ScrollView,
-  Platform,
-} from 'react-native';
-import { Input } from '@/components/ui/input';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { formatPhoneNumber, cn } from '@/lib/utils';
-import { useMemo, useState, memo } from 'react';
-import { useStableNavigate } from '@/lib/use-stable-navigate';
 import {
   buildAccountMenuFromDirectory,
   searchSettingsDirectory,
   type SettingsDirectoryEntry,
 } from '@/lib/settings-directory';
-import { ChevronRight, Search, Edit2 } from 'lucide-react-native';
+import { SETTINGS_MENU_ITEM_CLASS, SettingsGroup } from '@/lib/settings-ui';
+import { useStableNavigate } from '@/lib/use-stable-navigate';
+import { cn, formatPhoneNumber } from '@/lib/utils';
 import { useAppTheme } from '@/store/theme-store';
+import { Link, type Href } from 'expo-router';
+import { ChevronRight, Edit2, Search } from 'lucide-react-native';
+import { useMemo, useState } from 'react';
+import { ActivityIndicator, Platform, ScrollView, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-interface MenuRowProps {
-  icon: any;
-  title: string;
-  subtitle: string;
-  href?: Href;
-  destructive?: boolean;
-  onNavigate: (href: Href) => void;
-}
-
-const MenuRow = memo(
-  ({ icon: Icon, title, subtitle, href, destructive, onNavigate }: MenuRowProps) => {
-    const { brandColor, isDark } = useAppTheme();
-
-    return (
-      <View className="px-5">
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() => href && onNavigate(href)}
-          className={cn(
-            'flex-row items-center rounded-xl border border-border bg-background px-5 py-5'
-          )}>
-          <View
-            className={cn(
-              'mr-3.5 h-9 w-9 items-center justify-center rounded-lg',
-              destructive ? 'bg-destructive/10' : 'bg-brand/5'
-            )}>
-            <Icon size={18} color={destructive ? '#ef4444' : brandColor} strokeWidth={2} />
-          </View>
-
-          <View className="flex-1">
-            <Text
-              className={cn(
-                'text-[15px] font-semibold',
-                destructive ? 'text-destructive' : 'text-foreground'
-              )}>
-              {title}
-            </Text>
-            <Text className="mt-0.5 text-[11px] font-medium text-muted-foreground">{subtitle}</Text>
-          </View>
-
-          {!destructive && <ChevronRight size={14} color={isDark ? '#27272a' : '#d4d4d8'} />}
-        </TouchableOpacity>
-      </View>
-    );
-  }
-);
+// Local MenuRow replaced by centralized SettingsRow component.
 
 export default function AccountScreen() {
   const insets = useSafeAreaInsets();
@@ -151,7 +101,7 @@ export default function AccountScreen() {
                     {phone || 'Complete your profile'}
                   </Text>
                 </View>
-                <ChevronRight size={14} color={brandColor} className="opacity-40" />
+                <ChevronRight size={14} color={brandColor} strokeWidth={3} />
               </TouchableOpacity>
             </Link>
           )}
@@ -183,15 +133,15 @@ export default function AccountScreen() {
                 Results
               </Text>
               <View className="flex flex-col gap-2 bg-background">
-                {searchResults.map((item) => (
-                  <MenuRow
+                {searchResults.map((item: SettingsDirectoryEntry) => (
+                  <SettingsRow
                     key={item.id}
                     icon={item.icon}
                     title={item.title}
                     subtitle={subtitleForSearch(item)}
-                    href={item.href}
+                    onPress={() => item.href && stableNavigate(item.href)}
                     destructive={item.destructive}
-                    onNavigate={stableNavigate}
+                    isGrouped={false}
                   />
                 ))}
               </View>
@@ -202,18 +152,20 @@ export default function AccountScreen() {
                 <Text className="px-5 py-2 text-[10px] font-bold uppercase tracking-wider text-brand">
                   {section.title}
                 </Text>
-                <View className="flex flex-col gap-2 bg-background">
-                  {section.items.map((item) => (
-                    <MenuRow
-                      key={item.id}
-                      icon={item.icon}
-                      title={item.title}
-                      subtitle={item.subtitle}
-                      href={item.href}
-                      destructive={item.destructive}
-                      onNavigate={stableNavigate}
-                    />
-                  ))}
+                <View className="px-5">
+                  <SettingsGroup>
+                    {section.items.map((item) => (
+                      <SettingsRow
+                        key={item.id}
+                        icon={item.icon}
+                        title={item.title}
+                        subtitle={item.subtitle}
+                        onPress={() => item.href && stableNavigate(item.href)}
+                        destructive={item.destructive}
+                        isGrouped={true}
+                      />
+                    ))}
+                  </SettingsGroup>
                 </View>
               </View>
             ))

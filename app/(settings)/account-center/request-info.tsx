@@ -1,3 +1,7 @@
+import {
+  AccountReportData,
+  generateReportHTML,
+} from '@/components/account/report-template';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { useToast } from '@/components/ui/toast';
@@ -10,37 +14,23 @@ import {
   useCreateDataRequest,
   useDeleteDataRequest,
 } from '@/hooks/use-user';
-import { supabase } from '@/lib/supabase';
+import { useAccountReport } from '@/hooks/user/report';
 import { useAppTheme } from '@/store/theme-store';
 import dayjs from 'dayjs';
 import * as Haptics from 'expo-haptics';
-import * as Print from 'expo-print';
-import { shareAsync } from 'expo-sharing';
-import {
-  Download,
-  FileText,
-  Trash2,
-  ShieldCheck,
-  CheckCircle2,
-  AlertCircle,
-  MessageCircle,
-  History,
-  ChevronRight
-} from 'lucide-react-native';
+import { Download, FileText, Trash2 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   TouchableOpacity,
   View,
-  Platform,
 } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as FileSystem from 'expo-file-system';
-import { CryptoHelper } from '@/lib/crypto';
 
 export default function RequestAccountInfoScreen() {
   const insets = useSafeAreaInsets();
@@ -53,16 +43,17 @@ export default function RequestAccountInfoScreen() {
   const { data: history } = useAccountDataRequests();
   const createRequest = useCreateDataRequest();
   const deleteRequest = useDeleteDataRequest();
+  const generateReport = useAccountReport();
   const { user } = useAuth();
-  const [isGenerating, setIsGenerating] = useState(false);
 
   const status = request?.status || 'none';
-  const isLoading = createRequest.isPending || isQueryLoading || isGenerating;
+  const isLoading = createRequest.isPending || isQueryLoading || generateReport.isPending;
 
   const handleRequest = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
-      await createRequest.mutateAsync();
+      // Pass an empty object to satisfy mutation variables if typed strictly
+      await createRequest.mutateAsync({});
       toast({ message: 'Request sent successfully', variant: 'success' });
     } catch (err: any) {
       toast({ message: err.message || 'Failed to send request', variant: 'error' });
@@ -81,236 +72,25 @@ export default function RequestAccountInfoScreen() {
     }
   };
 
-  const generateHTML = (data: any) => {
-    const { profile, privacy, notification, chat, network, storage, messages } = data;
-
-    return `
-      <html>
-        <head>
-          <style>
-            body { font-family: 'Helvetica', sans-serif; color: #1a1a1a; padding: 40px; margin: 0; }
-            .header { border-bottom: 2px solid ${brandColor}; padding-bottom: 20px; margin-bottom: 30px; }
-            .title { font-size: 28px; font-weight: 800; color: ${brandColor}; margin: 0; }
-            .subtitle { font-size: 14px; color: #666; font-weight: 600; text-transform: uppercase; margin-top: 5px; }
-            
-            .section { margin-bottom: 30px; }
-            .section-title { font-size: 18px; font-weight: 700; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 15px; }
-            
-            .grid { display: flex; flex-wrap: wrap; gap: 20px; }
-            .item { min-width: 200px; margin-bottom: 15px; }
-            .label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #888; }
-            .value { font-size: 14px; font-weight: 500; color: #111; margin-top: 4px; }
-            
-            .card { background: #f9fafb; border-radius: 12px; padding: 20px; border: 1px solid #f3f4f6; }
-            .footer { margin-top: 100px; text-align: center; border-top: 1px solid #eee; padding-top: 20px; }
-            .disclaimer { font-size: 10px; color: #aaa; line-height: 1.6; }
-
-            .msg-row { border-bottom: 1px solid #f0f0f0; padding: 10px 0; }
-            .msg-meta { font-size: 11px; color: #999; margin-bottom: 4px; font-weight: 700; }
-            .msg-text { font-size: 13px; color: #333; line-height: 1.5; }
-            .msg-sender { color: ${brandColor}; }
-            .msg-agent { color: #555; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1 class="title">ACCOUNT DATA REPORT</h1>
-            <div class="subtitle">Generated for ${profile.username}</div>
-          </div>
-
-          <div class="section">
-            <h2 class="section-title">Identity & Profile</h2>
-            <div class="grid">
-              <div class="item"><div class="label">Full Name</div><div class="value">${profile.first_name || ''} ${profile.last_name || ''}</div></div>
-              <div class="item"><div class="label">Email Address</div><div class="value">${profile.email}</div></div>
-              <div class="item"><div class="label">Phone Number</div><div class="value">${profile.phone_number || 'N/A'}</div></div>
-              <div class="item"><div class="label">Username</div><div class="value">@${profile.username}</div></div>
-              <div class="item"><div class="label">Member Since</div><div class="value">${dayjs(profile.created_at).format('MMM D, YYYY')}</div></div>
-            </div>
-          </div>
-
-          <div class="section">
-            <h2 class="section-title">Privacy Settings</h2>
-            <div class="card">
-              <div class="grid">
-                <div class="item"><div class="label">Last Seen Visibility</div><div class="value">${privacy.last_seen}</div></div>
-                <div class="item"><div class="label">Profile Photo</div><div class="value">${privacy.profile_photo}</div></div>
-                <div class="item"><div class="label">Read Receipts</div><div class="value">${privacy.read_receipts ? 'Enabled' : 'Disabled'}</div></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="section">
-            <h2 class="section-title">Support Chat History (E2E Decrypted)</h2>
-            <div class="card" style="padding: 10px 20px;">
-              ${messages && messages.length > 0 ? messages.map((m: any) => `
-                <div class="msg-row">
-                  <div class="msg-meta">
-                    <span class="${m.is_mine ? 'msg-sender' : 'msg-agent'}">${m.is_mine ? 'You' : 'Support Team'}</span> • ${dayjs(m.created_at).format('MMM D, YYYY • h:mm A')}
-                  </div>
-                  <div class="msg-text">${m.text}</div>
-                </div>
-              `).join('') : '<p style="color: #888; text-align: center; margin: 20px 0;">No support messages found.</p>'}
-            </div>
-          </div>
-
-          <div class="section">
-            <h2 class="section-title">Network Usage Statistics</h2>
-            <div class="grid">
-              <div class="item"><div class="label">Messages Sent</div><div class="value">${network.messages_sent || 0}</div></div>
-              <div class="item"><div class="label">Messages Received</div><div class="value">${network.messages_received || 0}</div></div>
-              <div class="item"><div class="label">Media Sent</div><div class="value">${(network.media_sent / 1024 / 1024).toFixed(2)} MB</div></div>
-              <div class="item"><div class="label">Calls Sent</div><div class="value">${network.calls_sent || 0}</div></div>
-            </div>
-          </div>
-
-          <div class="section">
-            <h2 class="section-title">Export Security</h2>
-            <p style="font-size: 13px; color: #444;">This report was generated securely on your device. All end-to-end encrypted chats were decrypted locally using your private key. This document is for your offline reference.</p>
-          </div>
-
-          <div class="footer">
-            <div class="disclaimer">
-              This document is private and confidential. Report ID: ${request?.id || 'LOCAL-SYNC'}<br/>
-              Created on ${dayjs().format('MMMM D, YYYY at h:mm A')} via Secure Export Tool.
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
-  };
-
   const handleDownload = async () => {
     if (!user) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setIsGenerating(true);
 
-    // Minimalist toast approach
-    const toastId = toast({ message: 'Preparing your secure report...', variant: 'info' });
+    toast({ message: 'Preparing your secure report...', variant: 'info' });
 
     try {
-      const activeProfileId = await getActiveUsersRowIdForAuth(user.id);
-      const allProfileIds = await getAllUsersRowIdsForAuth(user.id);
-      if (!activeProfileId) {
-        throw new Error('No active profile to export');
+      const result = await generateReport.mutateAsync({
+        brandColor,
+        requestId: request?.id,
+      });
+
+      if (result.method === 'save') {
+        toast({ message: 'Report saved to your device!', variant: 'success' });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
-
-      const [
-        { data: profile },
-        { data: privacy },
-        { data: notification },
-        { data: chat },
-        { data: network },
-        { data: storage }
-      ] = await Promise.all([
-        supabase.from('users').select('*').eq('id', activeProfileId).single(),
-        supabase.from('privacy_settings').select('*').eq('user_id', user.id).single(),
-        supabase.from('notification_settings').select('*').eq('user_id', activeProfileId).single(),
-        supabase.from('chat_settings').select('*').eq('user_id', user.id).single(),
-        supabase.from('network_usage').select('*').eq('user_id', user.id).single(),
-        supabase.from('storage_usage').select('*').eq('user_id', user.id).single(),
-      ]);
-
-      // --- 1. DECRYPT SUPPORT CHAT ---
-      // Fetch all sessions for this user
-      const { data: userSessions } = await supabase
-        .from('get_support_sessions')
-        .select('id')
-        .in('user_id', allProfileIds.length > 0 ? allProfileIds : [activeProfileId]);
-
-      const sessionIds = userSessions?.map(s => s.id) || [];
-      let decryptedMessages: any[] = [];
-
-      if (sessionIds.length > 0) {
-        // Fetch all messages for these sessions
-        const { data: rawMessages } = await supabase
-          .from('support_messages')
-          .select('*')
-          .in('session_id', sessionIds)
-          .order('created_at', { ascending: true });
-
-        if (rawMessages && rawMessages.length > 0) {
-          await CryptoHelper.initializeKeys();
-
-          decryptedMessages = await Promise.all(rawMessages.map(async (m: any) => {
-            try {
-              const wrappedKey = m.keys_header?.[user.id];
-              if (!wrappedKey) return null;
-
-              const { data: sender } = await supabase.from('users').select('public_key').eq('id', m.sender_id).single();
-              if (!sender?.public_key) return null;
-
-              const text = m.message_type === 'image'
-                ? "[Image Attachment]"
-                : await CryptoHelper.decrypt(m.encrypted_blob, wrappedKey, sender.public_key);
-
-              return {
-                text,
-                created_at: m.created_at,
-                is_mine: allProfileIds.includes(m.sender_id),
-              };
-            } catch (decError) {
-              return {
-                text: '[Encrypted Message]',
-                created_at: m.created_at,
-                is_mine: allProfileIds.includes(m.sender_id),
-              };
-            }
-          }));
-        }
-      }
-
-      const data = {
-        profile,
-        privacy,
-        notification,
-        chat,
-        network,
-        storage,
-        messages: decryptedMessages.filter(Boolean)
-      };
-
-      const html = generateHTML(data);
-      const { uri: localUri } = await Print.printToFileAsync({ html });
-
-      // --- 2. DIRECT DOWNLOAD (ANDROID) ---
-      if (Platform.OS === 'android') {
-        // Use casting here because some TS definitions miss SAF on newer Expo SDKs
-        const saf = (FileSystem as any).StorageAccessFramework;
-        const encodingBase64 = (FileSystem as any).EncodingType?.Base64 || 'base64';
-
-        if (saf) {
-          const permissions = await saf.requestDirectoryPermissionsAsync();
-
-          if (permissions.granted) {
-            const base64 = await FileSystem.readAsStringAsync(localUri, {
-              encoding: encodingBase64
-            });
-            const fileName = `social-media-report-${dayjs().format('YYYY-MM-DD-HHmm')}.pdf`;
-
-            await saf.createFileAsync(
-              permissions.directoryUri,
-              fileName,
-              'application/pdf',
-              base64
-            );
-            toast({ message: 'Report saved to your device!', variant: 'success' });
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          } else {
-            await shareAsync(localUri, { UTI: '.pdf', mimeType: 'application/pdf' });
-          }
-        } else {
-          await shareAsync(localUri, { UTI: '.pdf', mimeType: 'application/pdf' });
-        }
-      } else {
-        await shareAsync(localUri, { UTI: '.pdf', mimeType: 'application/pdf' });
-      }
-
     } catch (err: any) {
       console.error('[Export] Generation Failed:', err);
       toast({ message: 'Failed to generate PDF. Check connection.', variant: 'error' });
-    } finally {
-      setIsGenerating(false);
     }
   };
 

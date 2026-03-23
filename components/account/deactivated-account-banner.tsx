@@ -2,10 +2,10 @@ import { Text } from '@/components/ui/text';
 import { useAuth } from '@/contexts/auth-context';
 import { useUserProfile } from '@/hooks/use-user';
 import { useStableNavigate } from '@/lib/use-stable-navigate';
+import { useAppTheme } from '@/store/theme-store';
 import { AlertTriangle } from 'lucide-react-native';
 import { Pressable, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAppTheme } from '@/store/theme-store';
 
 export function DeactivatedAccountBanner() {
   const stableNavigate = useStableNavigate();
@@ -21,7 +21,9 @@ export function DeactivatedAccountBanner() {
   const border = isDark ? 'rgba(251, 191, 36, 0.35)' : 'rgba(217, 119, 6, 0.4)';
 
   return (
-    <SafeAreaView edges={['top']} style={{ backgroundColor: tint, borderBottomWidth: 1, borderBottomColor: border }}>
+    <SafeAreaView
+      edges={['top']}
+      style={{ backgroundColor: tint, borderBottomWidth: 1, borderBottomColor: border }}>
       <Pressable
         accessibilityRole="button"
         accessibilityHint="Opens your account reactivation screen"

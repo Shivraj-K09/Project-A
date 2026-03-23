@@ -1,12 +1,12 @@
-import { Stack } from 'expo-router';
 import { SettingsHeader } from '@/components/settings-header';
-import { View } from 'react-native';
 import { useAuth } from '@/contexts/auth-context';
 import {
   SETTINGS_DIRECTORY,
   SETTINGS_STACK_ROUTE_ICONS,
   SETTINGS_STACK_ROUTE_TITLES,
 } from '@/lib/settings-directory';
+import { Stack } from 'expo-router';
+import { View } from 'react-native';
 
 export default function SettingsLayout() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -24,7 +24,7 @@ export default function SettingsLayout() {
     <Stack
       screenOptions={({ route }) => {
         const routeName = route.name;
-        const isPreview = routeName === 'wallpaper-preview';
+        const isPreview = routeName === 'chats/wallpaper-preview';
 
         const headerDestructive = SETTINGS_DIRECTORY.some(
           (e) => e.stackScreenKey === routeName && e.destructive

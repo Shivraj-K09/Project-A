@@ -96,7 +96,9 @@ export default function ReactivateAccountScreen() {
                   className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full"
                   style={{ backgroundColor: brandColor, opacity: 0.55 }}
                 />
-                <Text className="flex-1 text-[14px] leading-[22px] text-muted-foreground">{line}</Text>
+                <Text className="flex-1 text-[14px] leading-[22px] text-muted-foreground">
+                  {line}
+                </Text>
               </View>
             </View>
           ))}
@@ -114,8 +116,7 @@ export default function ReactivateAccountScreen() {
             shadowOpacity: isDark ? 0.35 : 0.12,
             shadowRadius: 10,
             elevation: 3,
-          }}
-        >
+          }}>
           {isWorking || reactivate.isPending ? (
             <ActivityIndicator color="#fff" size="small" />
           ) : (
@@ -136,8 +137,7 @@ export default function ReactivateAccountScreen() {
         onOpenChange={(open) => {
           if (isWorking || reactivateInFlightRef.current) return;
           setConfirmOpen(open);
-        }}
-      >
+        }}>
         <AlertDialogContent
           className="gap-0 rounded-2xl border border-border bg-background p-0"
           style={{ width: dialogWidth, alignSelf: 'center' }}>
@@ -148,8 +148,8 @@ export default function ReactivateAccountScreen() {
                 Reactivate your account?
               </AlertDialogTitle>
               <AlertDialogDescription className="mt-3 text-left text-[15px] font-normal leading-[22px] text-muted-foreground">
-                Your profile will be visible to others again according to your privacy settings. You can
-                change those anytime in settings.
+                Your profile will be visible to others again according to your privacy settings. You
+                can change those anytime in settings.
               </AlertDialogDescription>
             </AlertDialogHeader>
           </View>

@@ -1,60 +1,38 @@
 import { useAuth } from '@/contexts/auth-context';
 import { useProfileCompletion } from '@/hooks/use-user';
-import { Redirect } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 
-export default function Screen() {
-  const {
-    isAuthenticated,
-    isLoading: authLoading,
-    requiresTwoStepVerification,
-    isTwoStepVerified,
-  } = useAuth();
-  const { data: profileStatus, isLoading: profileLoading } = useProfileCompletion();
-  
+export default function BootstrapScreen() {
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isLoading: profileLoading } = useProfileCompletion();
+
   const [isReady, setIsReady] = useState(false);
 
-  const shouldWaitForProfile = isAuthenticated && (!requiresTwoStepVerification || isTwoStepVerified);
-  const isLoading = authLoading || (shouldWaitForProfile && profileLoading);
+  // We only care about profileLoading if we are already authenticated.
+  // The layout handles redirecting unauthenticated users to onboarding.
+  const appLoading = authLoading || (isAuthenticated && profileLoading);
 
   useEffect(() => {
-    let isMounted = true;
-    if (!isLoading && isMounted) {
+    if (!appLoading) {
       setIsReady(true);
+      // Coordinate splash screen hide once the initial state is determined.
+      // A small delay ensures the navigation system is ready to render the next target.
+      const timer = setTimeout(() => {
+        SplashScreen.hideAsync();
+      }, 50);
+      return () => clearTimeout(timer);
     }
-    return () => { isMounted = false; }
-  }, [isLoading]);
+  }, [appLoading]);
 
-  // Hide splash screen once we've decided where to go
-  useEffect(() => {
-    let isMounted = true;
-    if (isReady && isMounted) {
-      SplashScreen.hideAsync();
-    }
-    return () => { isMounted = false; }
-  }, [isReady]);
-
-  // Splash screen covers everything while loading
-  if (!isReady) {
-    return <View className="flex-1 bg-background" />;
-  }
-
-  if (!isAuthenticated) {
-    // Root _layout performs router.replace to onboarding once auth is ready (single source of truth)
-    return <View className="flex-1 bg-background" />;
-  }
-
-  if (requiresTwoStepVerification && !isTwoStepVerified) {
-    return <Redirect href="/(auth)/two-step-verify" />;
-  }
-
-  if (!profileStatus?.isComplete) {
-    return <Redirect href="/(auth)/phone-setup" />;
-  }
-
-  // Authenticated + complete: RootLayoutNav performs a single router.replace to (tabs)/chats.
-  // Avoid <Redirect href="(tabs)/chats" /> here or the stack navigates twice and Chats mounts twice.
-  return <View className="flex-1 bg-background" />;
+  // While bootstrapping or transitioning (e.g. while RootLayoutNav replaces this screen),
+  // we show a clean themed background with a subtle loader to prevent a blank 'flash'.
+  return (
+    <View className="flex-1 items-center justify-center bg-background">
+      {(!isReady || appLoading) && (
+        <ActivityIndicator size="small" color="#6366f1" className="opacity-30" />
+      )}
+    </View>
+  );
 }

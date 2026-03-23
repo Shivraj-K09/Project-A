@@ -1,6 +1,6 @@
 import { OnboardingIntro } from '@/components/onboarding/onboarding-intro';
-import { useColorScheme } from 'nativewind';
 import { router } from 'expo-router';
+import { useColorScheme } from 'nativewind';
 import React from 'react';
 import { View } from 'react-native';
 

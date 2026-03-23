@@ -1,5 +1,5 @@
-import { supabase } from '@/lib/supabase';
 import { queryClient } from '@/lib/query-client';
+import { supabase } from '@/lib/supabase';
 import type { Session, User } from '@supabase/supabase-js';
 import * as React from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
@@ -159,12 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signOut,
       validateSession,
     }),
-    [
-      session,
-      isLoading,
-      signOut,
-      validateSession,
-    ]
+    [session, isLoading, signOut, validateSession]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
