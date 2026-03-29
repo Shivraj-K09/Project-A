@@ -118,7 +118,7 @@ export default function ManageStorageScreen() {
   const effectiveTotalBytes = stats.total_device_space || 0;
   const nominalTotalBytes = inferNominalCapacity(effectiveTotalBytes);
   const displayCapacityBytes = nominalTotalBytes || effectiveTotalBytes;
-  
+
   const freeDeviceBytes = stats.free_device_space || 0;
   const usedDeviceBytes = Math.max(0, effectiveTotalBytes - freeDeviceBytes);
   const otherSystemBytes = Math.max(0, usedDeviceBytes - totalAppBytes);
@@ -129,8 +129,7 @@ export default function ManageStorageScreen() {
   // Single-bar composition: app usage, other used storage, and free storage.
   const appW = (totalAppBytes / totalBarBytes) * 100;
   const systemW = effectiveTotalBytes > 0 ? (otherSystemBytes / totalBarBytes) * 100 : 0;
-  const freeW =
-    effectiveTotalBytes > 0 ? Math.max(0, (freeDeviceBytes / totalBarBytes) * 100) : 0;
+  const freeW = effectiveTotalBytes > 0 ? Math.max(0, (freeDeviceBytes / totalBarBytes) * 100) : 0;
 
   const appShareOfDevice =
     effectiveTotalBytes > 0
@@ -169,7 +168,7 @@ export default function ManageStorageScreen() {
               </Text>
             </View>
             <View className="items-end pb-1">
-              <Text className="text-[12px] font-bold text-muted-foreground/60">
+              <Text className="font-semibol text-[12px] text-muted-foreground/60">
                 {formatBytes(freeDeviceBytes)} free
               </Text>
               {!hasTotalDevice && (
@@ -229,7 +228,7 @@ export default function ManageStorageScreen() {
 
         {/* Breakdown Section */}
         <View className="border-b border-border/5 px-6 py-6">
-          <Text className="mb-4 text-[12px] font-bold uppercase tracking-wider text-brand">
+          <Text className="font-semibol mb-4 text-[12px] uppercase tracking-wider text-brand">
             Storage Breakdown
           </Text>
 
@@ -253,7 +252,7 @@ export default function ManageStorageScreen() {
             disabled={pendingAction !== null}
             onPress={() => setIsCacheDialogOpen(true)}
             className="flex-row items-center justify-center rounded-2xl border border-brand/20 bg-brand/10 py-4 active:bg-brand/20">
-            <Text className="text-[14px] font-bold uppercase tracking-widest text-brand">
+            <Text className="font-semibol text-[14px] uppercase tracking-widest text-brand">
               {pendingAction === 'cache' ? 'Working...' : 'Clear All Cache'}
             </Text>
           </TouchableOpacity>
@@ -263,7 +262,7 @@ export default function ManageStorageScreen() {
             disabled={pendingAction !== null}
             onPress={() => setIsDeepCleanDialogOpen(true)}
             className="mt-3 flex-row items-center justify-center rounded-2xl border border-destructive/10 bg-destructive/5 py-4 active:bg-destructive/10">
-            <Text className="text-[14px] font-bold uppercase tracking-widest text-destructive">
+            <Text className="font-semibol text-[14px] uppercase tracking-widest text-destructive">
               {pendingAction === 'all' ? 'Working...' : 'Deep Clean App Data'}
             </Text>
           </TouchableOpacity>
@@ -291,7 +290,7 @@ export default function ManageStorageScreen() {
               disabled={pendingAction !== null}
               onPress={handleClearCache}
               className="h-14 flex-1 items-center justify-center rounded-[18px] bg-brand">
-              <Text className="text-[15px] font-bold text-white">Clear</Text>
+              <Text className="font-semibol text-[15px] text-white">Clear</Text>
             </TouchableOpacity>
           </View>
         </AlertDialogContent>
@@ -319,7 +318,7 @@ export default function ManageStorageScreen() {
               disabled={pendingAction !== null}
               onPress={handleDeepClean}
               className="h-14 flex-1 items-center justify-center rounded-[18px] bg-destructive">
-              <Text className="text-[15px] font-bold text-white">Deep Clean</Text>
+              <Text className="font-semibol text-[15px] text-white">Deep Clean</Text>
             </TouchableOpacity>
           </View>
         </AlertDialogContent>
@@ -357,7 +356,7 @@ function CompactStat({
 
   return (
     <View className={cn('flex-1 rounded-xl border px-3 py-2.5', toneClass)}>
-      <Text className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+      <Text className="font-semibol text-[10px] uppercase tracking-wider text-muted-foreground/70">
         {label}
       </Text>
       <Text className="mt-1 text-[13px] font-black text-foreground">{value}</Text>

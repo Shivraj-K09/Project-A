@@ -5,6 +5,7 @@ import { usePhoneSetup } from '@/hooks/use-phone-setup';
 import { useProtectedRoute } from '@/hooks/use-protected-route';
 import { cn } from '@/lib/utils';
 import * as Haptics from 'expo-haptics';
+import { Haptic } from '@/lib/haptic-utils';
 import {
   AlertTriangle,
   ArrowRight,
@@ -104,7 +105,7 @@ export default function PhoneSetupScreen() {
               className="h-10 w-10 items-center justify-center rounded-xl bg-secondary active:opacity-70">
               <ChevronLeft size={20} color={isDark ? '#a1a1aa' : '#52525b'} strokeWidth={2.5} />
             </Pressable>
-            <RNText className="text-lg font-bold text-foreground">Profile Setup</RNText>
+            <RNText className="font-semibol text-lg text-foreground">Profile Setup</RNText>
           </Animated.View>
 
           {/* Title + Subtitle */}
@@ -247,7 +248,7 @@ export default function PhoneSetupScreen() {
             <View className="flex-row gap-3 rounded-xl border border-amber-500/20 bg-amber-500/[0.08] p-3.5 dark:border-amber-500/25 dark:bg-amber-500/10">
               <AlertTriangle size={16} color="#f59e0b" className="mt-0.5" />
               <View className="flex-1 gap-1">
-                <Text className="text-[13px] font-bold text-amber-600 dark:text-amber-400">
+                <Text className="font-semibol text-[13px] text-amber-600 dark:text-amber-400">
                   Enter your correct number
                 </Text>
                 <Text className="text-xs leading-[18px] text-amber-700/80 dark:text-amber-300/60">
@@ -275,7 +276,7 @@ export default function PhoneSetupScreen() {
             <Pressable
               onPress={handleContinue}
               disabled={!isFormValid}
-              onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}>
+              onPressIn={() => Haptic.impact(Haptics.ImpactFeedbackStyle.Light)}>
               {({ pressed }) => (
                 <View
                   className={cn(

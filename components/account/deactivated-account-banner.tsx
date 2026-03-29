@@ -36,7 +36,7 @@ export function DeactivatedAccountBanner() {
           <AlertTriangle size={18} color={brandColor} strokeWidth={2.2} />
         </View>
         <View className="flex-1">
-          <Text className="text-[14px] font-bold text-foreground">Account deactivated</Text>
+          <Text className="font-semibol text-[14px] text-foreground">Account deactivated</Text>
           <Text className="mt-0.5 text-[12px] font-medium leading-snug text-muted-foreground">
             Your profile is hidden from others. Tap to reactivate.
           </Text>

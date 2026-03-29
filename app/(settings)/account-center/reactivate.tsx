@@ -59,7 +59,7 @@ export default function ReactivateAccountScreen() {
         router.replace('/(tabs)/chats');
       });
     } catch (e) {
-      console.error('[Reactivate]', e);
+      if (__DEV__) console.error('[Reactivate]', e);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setConfirmOpen(false);
       setErrorOpen(true);

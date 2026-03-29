@@ -23,6 +23,7 @@ interface ChatInputProps {
   onPlusPress?: () => void;
   placeholder?: string;
   footerMessage?: string;
+  disabled?: boolean;
   children?: React.ReactNode;
 }
 
@@ -33,6 +34,7 @@ export function ChatInput({
   onPlusPress,
   placeholder = 'Message...',
   footerMessage,
+  disabled = false,
   children,
 }: ChatInputProps) {
   const insets = useSafeAreaInsets();
@@ -48,7 +50,7 @@ export function ChatInput({
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
 
     const onShow = (e: any) => {
-      if (isFocused) {
+      if (isFocused && !disabled) {
         keyboardHeight.value = withTiming(e.endCoordinates.height, {
           duration: Platform.OS === 'ios' ? 300 : 250,
           easing: Easing.out(Easing.quad),
@@ -70,15 +72,15 @@ export function ChatInput({
       showSub.remove();
       hideSub.remove();
     };
-  }, [isFocused]);
+  }, [isFocused, disabled]);
 
   // Aggressive reset on focus change
   useEffect(() => {
-    if (!isFocused) {
+    if (!isFocused || disabled) {
       keyboardHeight.value = 0;
       Keyboard.dismiss();
     }
-  }, [isFocused]);
+  }, [isFocused, disabled]);
 
   const animatedContainerStyle = useAnimatedStyle(() => {
     return {
@@ -93,48 +95,48 @@ export function ChatInput({
       <BlurView
         intensity={Platform.OS === 'ios' ? 25 : 0}
         tint={isDark ? 'dark' : 'light'}
-        className="border-t border-border/10 bg-background/80"
-      >
+        className="border-t border-border/10 bg-background/80">
         <View style={{ paddingBottom: Math.max(insets.bottom, 14) }} className="px-4 pt-4">
           <View className="flex-row items-end gap-3">
             <View
               className={cn(
                 'relative flex-1 overflow-hidden rounded-[32px] border',
-                isDark ? 'bg-[#1C1C1E] border-white/5' : 'bg-[#F2F2F7] border-black/5'
-              )}
-            >
+                disabled ? 'border-border/10 bg-muted/50' : 'border-border/5 bg-muted'
+              )}>
               <Textarea
                 value={value}
                 onChangeText={onChangeText}
-                placeholder={placeholder}
-                className="max-h-[160px] min-h-[48px] border-0 bg-transparent py-3.5 pl-12 pr-4 text-[16px] font-medium text-foreground"
+                placeholder={disabled ? 'Chat ended' : placeholder}
+                editable={!disabled}
+                className={cn(
+                  "max-h-[160px] min-h-[48px] border-0 bg-transparent py-3.5 pl-14 pr-4 text-[16px] font-medium text-foreground",
+                  disabled && "opacity-40"
+                )}
                 placeholderClassName="text-muted-foreground/40"
               />
 
-              <TouchableOpacity
-                activeOpacity={0.7}
+              <Button
+                disabled={disabled}
                 className={cn(
-                  "absolute bottom-1 left-1 h-10 w-10 rounded-full items-center justify-center",
-                  isDark ? "bg-white/5" : "bg-black/5"
+                  'absolute bottom-1 left-1 h-10 w-10 items-center justify-center rounded-full !bg-transparent',
+                  disabled && "opacity-0"
                 )}
                 style={{ zIndex: 1000, elevation: 10 }}
-                onPress={onPlusPress}
-              >
+                onPress={onPlusPress}>
                 <Plus size={20} color={brandColor} strokeWidth={3} />
-              </TouchableOpacity>
+              </Button>
             </View>
 
             <Button
               size="icon"
-              disabled={!value.trim()}
+              disabled={disabled || !value.trim()}
               onPress={onSend}
               className={cn(
                 'h-12 w-12 rounded-full shadow-lg',
-                !value.trim() ? 'opacity-30' : 'opacity-100'
+                (disabled || !value.trim()) ? 'opacity-30' : 'opacity-100'
               )}
-              style={{ backgroundColor: brandColor }}
-            >
-              <Send size={18} color="#fff" strokeWidth={3} />
+              style={{ backgroundColor: brandColor }}>
+              <Send size={18} color="white" strokeWidth={3} />
             </Button>
           </View>
 

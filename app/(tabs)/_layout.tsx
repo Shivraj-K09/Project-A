@@ -1,28 +1,32 @@
+import { Haptic } from '@/lib/haptic-utils';
 import {
   createMaterialTopTabNavigator,
   type MaterialTopTabBarProps,
 } from '@react-navigation/material-top-tabs';
 import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, withLayoutContext } from 'expo-router';
 import { useColorScheme } from 'nativewind';
+import React from 'react';
 import { Dimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
-import React, { useMemo, useCallback } from 'react';
 
 // Custom Components
-import { TabButton } from '@/components/shared/tab-button';
 import {
-  CameraBoldIcon,
-  ChatTabIcon,
-  MomentsTabIcon,
-  PhoneTabIcon,
-  UserBoldIcon,
-  UserLinearIcon,
+  CameraActiveIcon,
+  CameraInactiveIcon,
+  ChatActiveIcon,
+  ChatInactiveIcon,
+  MomentsActiveIcon,
+  MomentsInactiveIcon,
+  PhoneActiveIcon,
+  PhoneInactiveIcon,
+  UserActiveIcon,
+  UserInactiveIcon,
 } from '@/components/shared/icons';
+import { TabButton } from '@/components/shared/tab-button';
 import { useAuth } from '@/contexts/auth-context';
 import { useUserProfile } from '@/hooks/use-user';
-import { cn } from '@/lib/utils';
 import { useThemeStore } from '@/store/theme-store';
 
 // Create the swipable navigator
@@ -30,143 +34,87 @@ const { Navigator } = createMaterialTopTabNavigator();
 const MaterialTopTabs = withLayoutContext(Navigator);
 
 const TAB_CONFIG: Record<string, any> = {
-  chats: { ActiveIcon: ChatTabIcon, InactiveIcon: ChatTabIcon },
-  moments: { ActiveIcon: MomentsTabIcon, InactiveIcon: MomentsTabIcon },
-  camera: { isCenter: true, ActiveIcon: CameraBoldIcon },
-  calls: { ActiveIcon: PhoneTabIcon, InactiveIcon: PhoneTabIcon },
-  account: { ActiveIcon: UserBoldIcon, InactiveIcon: UserLinearIcon },
+  chats: { ActiveIcon: ChatActiveIcon, InactiveIcon: ChatInactiveIcon },
+  moments: { ActiveIcon: MomentsActiveIcon, InactiveIcon: MomentsInactiveIcon },
+  camera: { ActiveIcon: CameraActiveIcon, InactiveIcon: CameraInactiveIcon },
+  calls: { ActiveIcon: PhoneActiveIcon, InactiveIcon: PhoneInactiveIcon },
+  account: { ActiveIcon: UserActiveIcon, InactiveIcon: UserInactiveIcon },
 };
 
+const VISUAL_ORDER = ['chats', 'moments', 'camera', 'calls', 'account'];
+
 function CustomTabBar({ state, navigation }: MaterialTopTabBarProps) {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { colorScheme } = useColorScheme();
   const { user } = useAuth();
   const { data: profile } = useUserProfile();
-  const brandColor = useThemeStore((state) => state.accentColor);
-  
+  const brandColor = useThemeStore((s) => s.accentColor);
   const isDark = colorScheme === 'dark';
-
-  const { width: SCREEN_WIDTH } = Dimensions.get('window');
-  const MARGIN = 16;
-  const TAB_BAR_WIDTH = SCREEN_WIDTH - MARGIN * 2;
-  const TAB_BAR_HEIGHT = 70;
-  const TAB_BAR_RADIUS = 28;
-
-  const pathString = useMemo(() => {
-    const CENTER = TAB_BAR_WIDTH / 2;
-    const CUTOUT_R = 40;
-    const CUT_DEPTH = 36;
-
-    const p1 = CENTER - CUTOUT_R - 15;
-    const p2 = CENTER - CUTOUT_R + 5;
-    const p3 = CENTER - CUTOUT_R + 5;
-    const p4 = CENTER;
-    const p5 = CENTER + CUTOUT_R - 5;
-    const p6 = CENTER + CUTOUT_R - 5;
-    const p7 = CENTER + CUTOUT_R + 15;
-
-    return `
-      M ${TAB_BAR_RADIUS} 0
-      L ${p1} 0
-      C ${p2} 0, ${p3} ${CUT_DEPTH}, ${p4} ${CUT_DEPTH}
-      C ${p5} ${CUT_DEPTH}, ${p6} 0, ${p7} 0
-      L ${TAB_BAR_WIDTH - TAB_BAR_RADIUS} 0
-      A ${TAB_BAR_RADIUS} ${TAB_BAR_RADIUS} 0 0 1 ${TAB_BAR_WIDTH} ${TAB_BAR_RADIUS}
-      L ${TAB_BAR_WIDTH} ${TAB_BAR_HEIGHT - TAB_BAR_RADIUS}
-      A ${TAB_BAR_RADIUS} ${TAB_BAR_RADIUS} 0 0 1 ${TAB_BAR_WIDTH - TAB_BAR_RADIUS} ${TAB_BAR_HEIGHT}
-      L ${TAB_BAR_RADIUS} ${TAB_BAR_HEIGHT}
-      A ${TAB_BAR_RADIUS} ${TAB_BAR_RADIUS} 0 0 1 0 ${TAB_BAR_HEIGHT - TAB_BAR_RADIUS}
-      L 0 ${TAB_BAR_RADIUS}
-      A ${TAB_BAR_RADIUS} ${TAB_BAR_RADIUS} 0 0 1 ${TAB_BAR_RADIUS} 0
-      Z
-    `;
-  }, [TAB_BAR_WIDTH]);
-
-  const visualOrder = useMemo(() => ['chats', 'moments', 'camera', 'calls', 'account'], []);
-
-  const handleCameraPress = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push('/camera');
-  }, [router]);
+  const BAR_HEIGHT = 68;
+  const TAB_BAR_BOTTOM = insets.bottom > 0 ? insets.bottom + 8 : 20;
+  const wallColor = isDark ? 'hsl(0 0% 3.9%)' : 'hsl(0 0% 100%)';
+  const transparentColor = isDark ? 'hsla(0, 0%, 3.9%, 0)' : 'hsla(0, 0%, 100%, 0)';
 
   return (
-    <View
-      style={{
-        bottom: insets.bottom > 0 ? insets.bottom : 24,
-        left: MARGIN,
-        right: MARGIN,
-      }}
-      className={cn(
-        'elevation-8 absolute h-[70px]',
-        isDark ? 'shadow-black/40' : 'shadow-black/5',
-        'shadow-2xl shadow-black/10'
-      )}>
-      <Svg
-        width={TAB_BAR_WIDTH}
-        height={TAB_BAR_HEIGHT}
-        viewBox={`0 0 ${TAB_BAR_WIDTH} ${TAB_BAR_HEIGHT}`}>
-        <Path
-          d={pathString}
-          fill={isDark ? '#18181b' : '#ffffff'}
-          stroke={isDark ? '#27272a' : '#f4f4f5'}
-          strokeWidth={1.5}
+    <View pointerEvents="box-none" className="absolute inset-x-0 bottom-0">
+      <View
+        pointerEvents="none"
+        className="absolute inset-x-0 bottom-0 overflow-hidden"
+        style={{ height: TAB_BAR_BOTTOM + BAR_HEIGHT + 20, zIndex: 90 }}>
+        <LinearGradient
+          colors={[transparentColor, wallColor, wallColor]}
+          locations={[0, 0.4, 1]}
+          className="flex-1"
         />
-      </Svg>
+      </View>
 
-      <View className="absolute inset-0 flex-row">
-        {visualOrder.map((name) => {
-          const config = TAB_CONFIG[name];
+      {/* Floating Tab Bar Container */}
+      <View
+        pointerEvents="box-none"
+        className="absolute inset-x-3"
+        style={{ bottom: TAB_BAR_BOTTOM, height: BAR_HEIGHT, zIndex: 100 }}>
+        <View className="flex-1 flex-row items-center overflow-hidden rounded-full border border-border bg-background">
+          {VISUAL_ORDER.map((name) => {
+            const config = TAB_CONFIG[name];
+            const routeIndex = state.routes.findIndex((r) => r.name === name);
+            const isFocused = routeIndex !== -1 && state.index === routeIndex;
+            const route =
+              routeIndex !== -1 ? state.routes[routeIndex] : { name, key: name, params: {} };
 
-          if (name === 'camera') {
+            const onPress = () => {
+              if (name === 'camera') {
+                Haptic.impact(Haptics.ImpactFeedbackStyle.Light);
+                router.push('/camera');
+                return;
+              }
+
+              if (routeIndex === -1) return;
+              const event = navigation.emit({
+                type: 'tabPress',
+                target: route.key,
+                canPreventDefault: true,
+              });
+              if (!isFocused && !event.defaultPrevented) {
+                navigation.navigate(route.name, route.params);
+              }
+            };
+
             return (
               <TabButton
-                key="camera-button"
-                route={{ name: 'camera' }}
-                isFocused={false}
+                key={name}
+                route={route}
+                isFocused={isFocused}
                 config={config}
-                onPress={handleCameraPress}
+                onPress={onPress}
                 brandColor={brandColor}
                 isDark={isDark}
                 profile={profile}
                 user={user}
               />
             );
-          }
-
-          const routeIndex = state.routes.findIndex((r) => r.name === name);
-          if (routeIndex === -1) return null;
-          
-          const route = state.routes[routeIndex];
-          const isFocused = state.index === routeIndex;
-
-          const onPress = () => {
-            const event = navigation.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
-            });
-
-            if (!isFocused && !event.defaultPrevented) {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              navigation.navigate(route.name, route.params);
-            }
-          };
-
-          return (
-            <TabButton
-              key={route.key}
-              route={route}
-              isFocused={isFocused}
-              config={config}
-              onPress={onPress}
-              brandColor={brandColor}
-              isDark={isDark}
-              profile={profile}
-              user={user}
-            />
-          );
-        })}
+          })}
+        </View>
       </View>
     </View>
   );
@@ -181,22 +129,18 @@ export default function TabsLayout() {
   }
 
   return (
-    <View className="flex-1 bg-background">
-      <View className="flex-1">
-        <MaterialTopTabs
-          tabBar={(props: MaterialTopTabBarProps) => <CustomTabBar {...props} />}
-          tabBarPosition="bottom"
-          keyboardDismissMode="on-drag"
-          initialLayout={{ width }}
-          screenOptions={{
-            lazy: true,
-          }}>
-          <MaterialTopTabs.Screen name="chats" />
-          <MaterialTopTabs.Screen name="moments" />
-          <MaterialTopTabs.Screen name="calls" />
-          <MaterialTopTabs.Screen name="account" />
-        </MaterialTopTabs>
-      </View>
+    <View className="flex-1 border bg-background">
+      <MaterialTopTabs
+        tabBar={(props: MaterialTopTabBarProps) => <CustomTabBar {...props} />}
+        tabBarPosition="bottom"
+        keyboardDismissMode="on-drag"
+        initialLayout={{ width }}
+        screenOptions={{ lazy: true }}>
+        <MaterialTopTabs.Screen name="chats" />
+        <MaterialTopTabs.Screen name="moments" />
+        <MaterialTopTabs.Screen name="calls" />
+        <MaterialTopTabs.Screen name="account" />
+      </MaterialTopTabs>
     </View>
   );
 }

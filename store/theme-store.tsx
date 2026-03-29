@@ -37,9 +37,11 @@ interface ThemeState {
   accentColor: string;
   bubbleShape: BubbleShape;
   stealthMode: boolean;
+  hapticsEnabled: boolean;
   setAccentColor: (color: string) => void;
   setBubbleShape: (shape: BubbleShape) => void;
   setStealthMode: (enabled: boolean) => void;
+  setHapticsEnabled: (enabled: boolean) => void;
 }
 
 export const useThemeStore = create<ThemeState>()(
@@ -48,9 +50,11 @@ export const useThemeStore = create<ThemeState>()(
       accentColor: '#6366f1',
       bubbleShape: 'round',
       stealthMode: false,
+      hapticsEnabled: true,
       setAccentColor: (color) => set({ accentColor: color }),
       setBubbleShape: (shape) => set({ bubbleShape: shape }),
       setStealthMode: (enabled) => set({ stealthMode: enabled }),
+      setHapticsEnabled: (enabled) => set({ hapticsEnabled: enabled }),
     }),
     {
       name: 'app-theme-storage',
@@ -73,14 +77,14 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
   // Always mount the app tree. Waiting on persist hydration left `children === null` and produced a
   // solid black/white screen (only this View's background) when AsyncStorage was slow or stalled.
   return (
-    <View style={[themeVars, { flex: 1, backgroundColor: isDark ? '#000' : '#fff' }]}>
+    <View style={[themeVars, { flex: 1, backgroundColor: isDark ? 'hsl(0 0% 3.9%)' : 'hsl(0 0% 100%)' }]}>
       {children}
     </View>
   );
 }
 
 export function useAppTheme() {
-  const accentColor = useThemeStore((state) => state.accentColor);
+  const { accentColor, hapticsEnabled } = useThemeStore();
   const { colorScheme } = useColorScheme();
   
   // Safe check for development
@@ -90,5 +94,6 @@ export function useAppTheme() {
     brandColor: accentColor,
     isDark,
     accentColor,
+    hapticsEnabled,
   };
 }

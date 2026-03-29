@@ -262,7 +262,7 @@ export default function KnowledgeBaseScreen() {
 
           {filteredContent.length === 0 && (
             <View className="items-center py-20">
-              <Text className="font-bold text-muted-foreground/30">No documentation found</Text>
+              <Text className="font-semibol text-muted-foreground/30">No documentation found</Text>
             </View>
           )}
 
@@ -314,7 +314,7 @@ const DocItem = memo(({ title, content, icon: Icon }: any) => {
           <Icon size={16} color={brandColor} strokeWidth={2.2} />
         </View>
         <View className="flex-1 pr-4">
-          <Text className="mb-1.5 text-[17px] font-bold tracking-tight text-foreground">
+          <Text className="font-semibol mb-1.5 text-[17px] tracking-tight text-foreground">
             {title}
           </Text>
           <Text className="text-[14px] font-medium leading-[22px] text-muted-foreground/50">

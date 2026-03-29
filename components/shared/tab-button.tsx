@@ -1,9 +1,16 @@
-import React, { memo } from 'react';
+import React, { memo, useEffect } from 'react';
 import { Pressable, View } from 'react-native';
-import { useColorScheme } from 'nativewind';
+import Animated, {
+  useAnimatedStyle,
+  withTiming,
+  useSharedValue,
+  Easing,
+} from 'react-native-reanimated';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Icon, UserIcon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { cn } from '@/lib/utils';
+import { Haptic } from '@/lib/haptic-utils';
 
 interface TabButtonProps {
   route: any;
@@ -16,7 +23,7 @@ interface TabButtonProps {
   user: any;
 }
 
-export const TabButton = memo(({
+const TabButtonComponent = ({
   route,
   isFocused,
   config,
@@ -26,56 +33,75 @@ export const TabButton = memo(({
   profile,
   user,
 }: TabButtonProps) => {
-  if (!config) return <View className="flex-1" />;
+  const focus = useSharedValue(isFocused ? 1 : 0);
 
-  // Center "Floating Action" Button
-  if (config.isCenter) {
-    return (
-      <View className="flex-1 items-center justify-start">
-        <Pressable
-          onPress={onPress}
-          style={{ backgroundColor: brandColor }}
-          className="elevation-8 absolute -top-[38px] size-[68px] items-center justify-center rounded-full shadow-lg shadow-black/20">
-          <config.ActiveIcon width={32} height={32} color="#ffffff" />
-        </Pressable>
-      </View>
-    );
-  }
+  useEffect(() => {
+    focus.value = withTiming(isFocused ? 1 : 0, {
+      duration: 350,
+      easing: Easing.bezier(0.4, 0, 0.2, 1),
+    });
+  }, [isFocused]);
 
-  // Standard Tabs
+  const activeStyle = useAnimatedStyle(() => ({
+    opacity: focus.value,
+    position: 'absolute',
+  }));
+
+  const inactiveStyle = useAnimatedStyle(() => ({
+    opacity: 1 - focus.value,
+  }));
+
+  const handlePress = () => {
+    if (!isFocused) {
+      Haptic.selection();
+    }
+    onPress();
+  };
+
+  if (!config) return <View style={{ flex: 1 }} />;
+
   const { ActiveIcon, InactiveIcon } = config;
   const isAccount = route.name === 'account';
-  const Icon = isFocused ? ActiveIcon : InactiveIcon;
 
-  const inactiveColor = isDark ? '#71717a' : '#a1a1aa';
-  const color = isFocused ? brandColor : inactiveColor;
+  const inactiveColor = isDark ? 'hsla(0, 0%, 100%, 0.45)' : 'hsla(0, 0%, 0%, 0.55)';
 
   return (
-    <Pressable onPress={onPress} className="flex-1 items-center justify-center">
+    <Pressable
+      onPress={handlePress}
+      className="flex-1 items-center justify-center bg-transparent p-0"
+      style={{ height: '100%' }}>
       <View className="items-center justify-center">
         {isAccount && user ? (
           <View
             className={cn(
-              'size-[30px] overflow-hidden rounded-full',
-              isDark ? 'bg-indigo-950' : 'bg-indigo-50',
-              isFocused ? 'border-2' : 'border-0'
+              'size-[28px] overflow-hidden rounded-full',
+              isFocused ? 'bg-transparent' : 'bg-secondary'
             )}
-            style={isFocused ? { borderColor: brandColor } : undefined}>
-            <Avatar
-              alt={profile?.username || 'User'}
-              className={cn('size-full', isFocused ? 'opacity-100' : 'opacity-80')}>
-              <AvatarImage source={{ uri: profile?.avatar_url || undefined }} />
+            style={{
+              borderColor: isFocused ? brandColor : 'transparent',
+              borderWidth: isFocused ? 2 : 0,
+            }}>
+            <Avatar alt={profile?.username || 'User'} className="size-full">
+              <AvatarImage source={profile?.avatar_url ? { uri: profile.avatar_url } : undefined} />
               <AvatarFallback className="flex size-full items-center justify-center bg-brand">
-                <Text className="text-center text-[10px] font-bold text-white">
-                  {profile?.username?.charAt(0) || 'U'}
-                </Text>
+                <Icon as={UserIcon} size={14} color="white" />
               </AvatarFallback>
             </Avatar>
           </View>
         ) : (
-          <Icon width={30} height={30} color={color} />
+          <View className="size-[26px] items-center justify-center">
+            <Animated.View style={inactiveStyle}>
+              {InactiveIcon && <InactiveIcon width={26} height={26} color={inactiveColor} />}
+            </Animated.View>
+
+            <Animated.View style={activeStyle}>
+              {ActiveIcon && <ActiveIcon width={26} height={26} color={brandColor} />}
+            </Animated.View>
+          </View>
         )}
       </View>
     </Pressable>
   );
-});
+};
+
+export const TabButton = memo(TabButtonComponent);

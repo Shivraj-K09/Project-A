@@ -1,5 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
+import * as LocalAuthentication from 'expo-local-authentication';
 import { File } from 'expo-file-system';
+import { getAppLockEnabled } from './app-lock';
 import { decode, encode } from 'base64-arraybuffer';
 
 const PRIVATE_KEY_ALIAS = 'support_chat_private_key';
@@ -24,13 +26,52 @@ const getRandomValues = (arr: Uint8Array) => {
 
 export class CryptoHelper {
   /**
+   * Generates dynamic options for SecureStore based on device capability.
+   * On Emulator or devices without biometrics, it falls back to hardware-locked (WHEN_UNLOCKED) 
+   * without requiring user authentication popups.
+   */
+  private static async getSecureStoreOptions(prompt?: string): Promise<SecureStore.SecureStoreOptions> {
+    const isCompatible = await LocalAuthentication.hasHardwareAsync();
+    const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+    const isAppLockEnabled = await getAppLockEnabled();
+
+    // 🛡️ SECURITY RESOLUTION: Only require biometric popup IF hardware exists AND user has it set up
+    // AND they have opted into "App Lock" in settings. 
+    // This allows Emulators and older devices to use E2EE securely without crashing.
+    const shouldRequireAuth = isCompatible && isEnrolled && isAppLockEnabled;
+
+    return {
+      requireAuthentication: shouldRequireAuth,
+      authenticationPrompt: prompt || 'Authorize secure chat identity',
+      keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY, 
+      keychainService: 'social-media-support-chat'
+    };
+  }
+
+  /**
    * Generates a new ECDH P-256 keypair for E2EE.
    * On Mobile, the private key is stored in the SecureStore (Hardware).
    * returns the public key as a base64 string.
    */
   static async initializeKeys(): Promise<string> {
     const existingPub = await SecureStore.getItemAsync(PUBLIC_KEY_ALIAS);
-    if (existingPub) return existingPub;
+    const options = await this.getSecureStoreOptions('Verify identity');
+    const existingPriv = await SecureStore.getItemAsync(PRIVATE_KEY_ALIAS, options);
+    
+    if (existingPub && existingPriv) {
+      return existingPub;
+    }
+
+    if (existingPub) {
+      try {
+        if (existingPriv) return existingPub;
+        if (__DEV__) console.warn('[Crypto] Public/Private key mismatch or access denied. Purging old session.');
+        await this.purgeKeys();
+      } catch (err) {
+        if (__DEV__) console.warn('[Crypto] Access denied to existing private key. Purging old session.');
+        await this.purgeKeys();
+      }
+    }
 
     // SCALING RESOLUTION: Hardware-Backed & Memory-Sanitized Generation
     const subtle = getSubtle();
@@ -50,24 +91,16 @@ export class CryptoHelper {
     let privBase64: string | null = this.arrayBufferToBase64(privExported!);
 
     // 3. HARDWARE PINNING: Encrypt with Hardware Master Key 
-    // This anchors the string to the Secure Enclave/KeyStore.
-    const storeOptions: SecureStore.SecureStoreOptions = {
-      requireAuthentication: true,
-      authenticationPrompt: 'Authorize secure chat identity setup',
-      keychainAccessible: SecureStore.WHEN_PASSCODE_SET_THIS_DEVICE_ONLY, // Strongest protection
-      keychainService: 'social-media-support-chat'
-    };
+    const storeOptions = await this.getSecureStoreOptions('Authorize secure chat identity setup');
 
     try {
       await SecureStore.setItemAsync(PUBLIC_KEY_ALIAS, pubBase64);
       await SecureStore.setItemAsync(PRIVATE_KEY_ALIAS, privBase64, storeOptions);
     } finally {
       // 4. MEMORY HYGIENE (CRITICAL): Erase the raw key from JS memory
-      // We overwrite the buffer with zeros before it can lingering in garbage collection.
       if (privExported) {
         new Uint8Array(privExported).fill(0);
       }
-      // We nullify the pointers
       privExported = null;
       privBase64 = null;
     }
@@ -76,10 +109,7 @@ export class CryptoHelper {
   }
 
   private static async loadPrivateKey(subtle: SubtleCrypto): Promise<CryptoKey> {
-    const options: SecureStore.SecureStoreOptions = {
-      requireAuthentication: true,
-      keychainService: 'social-media-support-chat'
-    };
+    const options = await this.getSecureStoreOptions('Access secure message identity');
 
     const myPrivBase64 = await SecureStore.getItemAsync(PRIVATE_KEY_ALIAS, options);
     if (!myPrivBase64) throw new Error('Private key missing or access denied');
@@ -165,7 +195,7 @@ export class CryptoHelper {
         
         keysHeader[recipient.userId] = this.arrayBufferToBase64(headerBuffer.buffer);
       } catch (err) {
-        console.error(`Failed to wrap for ${recipient.userId}`, err);
+        if (__DEV__) console.error(`Failed to wrap for ${recipient.userId}`, err);
       }
     }
 
@@ -233,6 +263,83 @@ export class CryptoHelper {
     return new TextDecoder().decode(decrypted);
   }
 
+  /**
+   * RECOVERY HELPER: Unwraps a session key from a header using our private key.
+   * Returns the raw ArrayBuffer of the session key.
+   */
+  static async unwrapSessionKey(
+    wrappedHeaderBase64: string,
+    senderPublicKeyBase64: string
+  ): Promise<ArrayBuffer> {
+    const subtle = getSubtle();
+    const headerBuffer = new Uint8Array(this.base64ToArrayBuffer(wrappedHeaderBase64));
+    const wIv = headerBuffer.slice(0, 12);
+    const wCiphertext = headerBuffer.slice(12);
+
+    const senderPub = await subtle.importKey(
+      'spki',
+      this.base64ToArrayBuffer(senderPublicKeyBase64),
+      { name: 'ECDH', namedCurve: 'P-256' },
+      false,
+      []
+    );
+    const myPrivKey = await this.loadPrivateKey(subtle);
+
+    const wrappingKey = await subtle.deriveKey(
+      { name: 'ECDH', public: senderPub },
+      myPrivKey,
+      { name: 'AES-GCM', length: 128 },
+      false,
+      ['decrypt']
+    );
+
+    return await subtle.decrypt(
+      { name: 'AES-GCM', iv: wIv },
+      wrappingKey,
+      wCiphertext
+    );
+  }
+
+  /**
+   * RE-WRAP HELPER: Wraps a raw session key for a new recipient.
+   */
+  static async wrapSessionKey(
+    rawSessionKey: ArrayBuffer,
+    recipientPublicKeyBase64: string
+  ): Promise<string> {
+    const subtle = getSubtle();
+    const myPrivKey = await this.loadPrivateKey(subtle);
+
+    const recipientPubKey = await subtle.importKey(
+      'spki',
+      this.base64ToArrayBuffer(recipientPublicKeyBase64),
+      { name: 'ECDH', namedCurve: 'P-256' },
+      false,
+      []
+    );
+
+    const wrappingKey = await subtle.deriveKey(
+      { name: 'ECDH', public: recipientPubKey },
+      myPrivKey,
+      { name: 'AES-GCM', length: 128 },
+      false,
+      ['encrypt']
+    );
+
+    const wIv = getRandomValues(new Uint8Array(12));
+    const wrapped = await subtle.encrypt(
+      { name: 'AES-GCM', iv: wIv },
+      wrappingKey,
+      rawSessionKey
+    );
+
+    const resultBuffer = new Uint8Array(12 + wrapped.byteLength);
+    resultBuffer.set(wIv);
+    resultBuffer.set(new Uint8Array(wrapped), 12);
+    
+    return this.arrayBufferToBase64(resultBuffer.buffer);
+  }
+
 
 
   static async encryptFile(
@@ -294,7 +401,7 @@ export class CryptoHelper {
         headerBuffer.set(new Uint8Array(wrappedKeyBuffer), 12);
         keysHeader[recipient.userId] = this.arrayBufferToBase64(headerBuffer.buffer);
       } catch (err) {
-        console.error(`Failed to wrap file key for ${recipient.userId}`, err);
+        if (__DEV__) console.error(`Failed to wrap file key for ${recipient.userId}`, err);
       }
     }
 

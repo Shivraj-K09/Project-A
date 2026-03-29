@@ -1,3 +1,5 @@
+import 'react-native-get-random-values';
+
 import * as SecureStore from 'expo-secure-store';
 import { createClient } from '@supabase/supabase-js';
 import 'react-native-url-polyfill/auto';
@@ -55,7 +57,7 @@ const ExpoSecureStoreAdapter = {
         await SecureStore.deleteItemAsync(key);
       }
     } catch (e) {
-      console.error('SecureStore: Failed to save item after chunking attempt', e);
+      if (__DEV__) console.error('SecureStore: Failed to save item after chunking attempt', e);
     }
   },
   removeItem: async (key: string) => {

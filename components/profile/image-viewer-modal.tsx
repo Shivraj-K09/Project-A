@@ -1,9 +1,22 @@
 import { Image as ExpoImage } from 'expo-image';
-import { X } from 'lucide-react-native';
+import { ChevronLeft } from 'lucide-react-native';
 import React from 'react';
-import { Modal, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
-import Animated, { Easing, FadeIn, FadeOut, ZoomIn, ZoomOut } from 'react-native-reanimated';
+import {
+  Modal,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
+  StyleSheet,
+  Dimensions,
+} from 'react-native';
+import Animated, { FadeIn, FadeOut, ZoomIn, ZoomOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAppTheme } from '@/store/theme-store';
+import { Haptic } from '@/lib/haptic-utils';
+import * as Haptics from 'expo-haptics';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface ImageViewerModalProps {
   visible: boolean;
@@ -11,9 +24,21 @@ interface ImageViewerModalProps {
   imageUrl: string | null;
 }
 
+/**
+ * 🎨 Synchronized Minimalist Photo Viewer
+ * Features: Header architecture matching 'Account' and 'Profile Details' screens.
+ */
 export const ImageViewerModal = React.memo(
   ({ visible, onClose, imageUrl }: ImageViewerModalProps) => {
     const insets = useSafeAreaInsets();
+    const { isDark } = useAppTheme();
+
+    if (!visible) return null;
+
+    const handleClose = () => {
+      Haptic.impact(Haptics.ImpactFeedbackStyle.Light);
+      onClose();
+    };
 
     return (
       <Modal
@@ -21,45 +46,72 @@ export const ImageViewerModal = React.memo(
         transparent={true}
         animationType="none"
         statusBarTranslucent
-        onRequestClose={onClose}>
-        <View className="flex-1">
-          <TouchableWithoutFeedback onPress={onClose}>
-            <Animated.View
-              entering={FadeIn.duration(200)}
-              exiting={FadeOut.duration(200)}
-              className="absolute inset-0 bg-black/90"
-            />
-          </TouchableWithoutFeedback>
+        onShow={() => Haptic.selection()}
+        onRequestClose={handleClose}>
+        <View className="flex-1 bg-background">
+          {/* SOLID BACKGROUND LAYER - Matches Screen BG */}
+          <View
+            style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? '#000000' : '#ffffff' }]}
+          />
 
-          <View className="flex-1 items-center justify-center">
-            <Animated.View
-              entering={ZoomIn.duration(250).easing(Easing.out(Easing.quad))}
-              exiting={ZoomOut.duration(200).easing(Easing.in(Easing.quad))}
-              className="aspect-square w-full px-4">
-              {imageUrl ? (
-                <ExpoImage
-                  source={{ uri: imageUrl }}
-                  style={{ width: '100%', height: '100%', borderRadius: 24 }}
-                  contentFit="cover"
-                  transition={200}
-                />
-              ) : null}
-            </Animated.View>
-
-            <Animated.View
-              entering={FadeIn.delay(100).duration(300)}
-              exiting={FadeOut.duration(200)}
-              style={{ top: insets.top + 10 }}
-              className="absolute left-0 right-0 flex-row items-center justify-between px-6">
+          {/* 
+             🏗️ SYNCHRONIZED HEADER
+             Matches app/profile-details.tsx and (tabs)/account.tsx
+          */}
+          <Animated.View
+            entering={FadeIn.duration(300)}
+            style={{ paddingTop: Math.max(insets.top, 20) }}
+            className="absolute left-0 right-0 z-50 border-b border-brand/20 bg-background">
+            <View className="flex-row items-center px-4 py-4">
               <TouchableOpacity
-                onPress={onClose}
-                className="h-10 w-10 items-center justify-center rounded-full bg-white/10">
-                <X size={24} color="white" />
+                onPress={handleClose}
+                activeOpacity={0.7}
+                className="h-10 w-10 items-center justify-center">
+                <ChevronLeft size={24} color={isDark ? '#fff' : '#000'} strokeWidth={2.5} />
               </TouchableOpacity>
-              <Text className="text-base font-bold text-white shadow-sm">Profile Photo</Text>
-              <View className="w-10" />
-            </Animated.View>
-          </View>
+
+              <View className="ml-1 h-8 justify-center">
+                <Text className="font-semibol text-2xl tracking-tight text-foreground">
+                  <Text className="font-semibol text-2xl text-brand">P</Text>rofile Photo
+                </Text>
+              </View>
+            </View>
+          </Animated.View>
+
+          {/* CENTERED IMAGE CARD */}
+          <TouchableWithoutFeedback onPress={handleClose}>
+            <View className="flex-1 items-center justify-center p-6 pt-20">
+              <Animated.View
+                entering={ZoomIn.duration(250)}
+                exiting={ZoomOut.duration(200)}
+                className="shadow-sm">
+                <View
+                  className="overflow-hidden bg-muted/10"
+                  style={{
+                    width: SCREEN_WIDTH - 48,
+                    height: SCREEN_WIDTH - 48,
+                    borderRadius: 16,
+                    borderWidth: StyleSheet.hairlineWidth,
+                    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                  }}>
+                  {imageUrl ? (
+                    <ExpoImage
+                      source={{ uri: imageUrl }}
+                      style={{ width: '100%', height: '100%' }}
+                      contentFit="cover"
+                      transition={200}
+                    />
+                  ) : (
+                    <View className="flex-1 items-center justify-center">
+                      <Text className="text-[12px] font-medium uppercase tracking-widest text-muted-foreground">
+                        No Image
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </Animated.View>
+            </View>
+          </TouchableWithoutFeedback>
         </View>
       </Modal>
     );

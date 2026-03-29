@@ -1,4 +1,5 @@
 import { useAuth } from '@/contexts/auth-context';
+import { resolveAvatarUrl } from '@/lib/avatar';
 import { supabase } from '@/lib/supabase';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getActiveUsersRowIdForAuth, getAllUsersRowIdsForAuth, userKeys, UserProfile } from './profile';
@@ -89,7 +90,10 @@ export function useReactivateAccount() {
         .single();
 
       if (error) throw error;
-      return data as UserProfile;
+      return {
+        ...(data as UserProfile),
+        avatar_url: await resolveAvatarUrl(data?.avatar_url ?? null),
+      } as UserProfile;
     },
     onSuccess: (data) => {
       if (user?.id) {

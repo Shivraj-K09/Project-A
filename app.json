@@ -2,7 +2,7 @@
   "expo": {
     "name": "Social Media",
     "slug": "social-media",
-    "version": "1.0.0",
+    "version": "1.0.0 (Development)",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -13,16 +13,17 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "edgeToEdgeEnabled": true,
       "softwareKeyboardLayoutMode": "resize",
-      "permissions": ["android.permission.POST_NOTIFICATIONS"],
+      "permissions": [
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.READ_CONTACTS"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -56,7 +57,13 @@
       ],
       "expo-audio",
       "expo-asset",
-      "expo-local-authentication"
+      "expo-local-authentication",
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Allow Social Media to access your contacts to find friends."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

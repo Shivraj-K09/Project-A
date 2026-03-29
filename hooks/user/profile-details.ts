@@ -84,12 +84,8 @@ export function useProfileDetails() {
 
       if (error) throw error;
 
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from('avatars').getPublicUrl(filePath);
-
       updateProfile(
-        { avatar_url: publicUrl },
+        { avatar_url: filePath },
         {
           onSuccess: () => {
             toast({ message: 'Avatar updated', variant: 'success' });

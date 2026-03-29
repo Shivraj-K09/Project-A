@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
 import { useThemeStore } from '@/store/theme-store';
+import { Haptic } from '@/lib/haptic-utils';
 
 interface SettingsHeaderProps {
   title: string;
@@ -14,7 +15,12 @@ interface SettingsHeaderProps {
   rightElement?: React.ReactNode;
 }
 
-export function SettingsHeader({ title, icon: Icon, iconColor, rightElement }: SettingsHeaderProps) {
+export function SettingsHeader({
+  title,
+  icon: Icon,
+  iconColor,
+  rightElement,
+}: SettingsHeaderProps) {
   const insets = useSafeAreaInsets();
   const { colorScheme } = useColorScheme();
   const brandColor = useThemeStore((state) => state.accentColor);
@@ -25,7 +31,10 @@ export function SettingsHeader({ title, icon: Icon, iconColor, rightElement }: S
       <View className="flex-row items-center justify-between px-4 py-3">
         <View className="flex-1 flex-row items-center">
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => {
+              Haptic.selection();
+              router.back();
+            }}
             activeOpacity={0.7}
             className="-ml-2 mr-2 h-10 w-10 items-center justify-center">
             <ChevronLeft size={28} color={isDark ? '#ffffff' : '#000000'} strokeWidth={2} />
@@ -37,7 +46,7 @@ export function SettingsHeader({ title, icon: Icon, iconColor, rightElement }: S
                 <Icon size={18} color={iconColor || brandColor} strokeWidth={2.5} />
               </View>
             )}
-            <Text className="text-xl font-bold tracking-tight text-foreground">{title}</Text>
+            <Text className="font-semibol text-xl tracking-tight text-foreground">{title}</Text>
           </View>
         </View>
 

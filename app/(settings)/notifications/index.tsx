@@ -2,9 +2,7 @@ import { Drawer } from '@/components/ui/drawer';
 import { Switch } from '@/components/ui/switch';
 import { Text } from '@/components/ui/text';
 import { useAuth } from '@/contexts/auth-context';
-import {
-  getActiveUsersRowIdForAuth,
-} from '@/hooks/use-user';
+import { getActiveUsersRowIdForAuth } from '@/hooks/use-user';
 import { useNotificationLogic } from '@/hooks/user/notifications';
 import { SettingsRow } from '@/components/settings/settings-row';
 import { SettingsGroup, cnSettingsMenuItem } from '@/lib/settings-ui';
@@ -15,6 +13,7 @@ import dayjs from 'dayjs';
 import { useAudioPlayer } from 'expo-audio';
 import Constants from 'expo-constants';
 import * as Haptics from 'expo-haptics';
+import { Haptic } from '@/lib/haptic-utils';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Bell,
@@ -114,20 +113,15 @@ export default function NotificationSettingsScreen() {
   const brandColor = useThemeStore((state) => state.accentColor);
 
   // 🛡️ Logic & State Hook
-  const { 
-    localSettings, 
-    isLoading, 
-    toggleSetting, 
-    snoozeAlerts, 
-    updateQuietTime 
-  } = useNotificationLogic();
+  const { localSettings, isLoading, toggleSetting, snoozeAlerts, updateQuietTime } =
+    useNotificationLogic();
 
   const [isSnoozeDrawerVisible, setIsSnoozeDrawerVisible] = React.useState(false);
   const [isTimeDrawerVisible, setIsTimeDrawerVisible] = React.useState(false);
   const [editingTimeKey, setEditingTimeKey] = React.useState<
     'quiet_hours_start' | 'quiet_hours_end' | null
   >(null);
-  
+
   const [currentTime, setCurrentTime] = React.useState(dayjs());
   const [isTestingSound, setIsTestingSound] = React.useState(false);
 
@@ -172,12 +166,18 @@ export default function NotificationSettingsScreen() {
   const handleTimeSelect = (time: string) => {
     if (!editingTimeKey) return;
 
-    if (normalizeTime(localSettings[editingTimeKey === 'quiet_hours_start' ? 'quiet_hours_end' : 'quiet_hours_start']) === normalizeTime(time)) {
+    if (
+      normalizeTime(
+        localSettings[
+          editingTimeKey === 'quiet_hours_start' ? 'quiet_hours_end' : 'quiet_hours_start'
+        ]
+      ) === normalizeTime(time)
+    ) {
       Alert.alert('Invalid Time', 'Start and end times cannot be the same.');
       return;
     }
 
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Haptic.impact(Haptics.ImpactFeedbackStyle.Light);
     updateQuietTime(editingTimeKey, time);
     setIsTimeDrawerVisible(false);
     setEditingTimeKey(null);
@@ -222,9 +222,9 @@ export default function NotificationSettingsScreen() {
               subtitle="Receive alerts for new messages"
               onPress={() => handleToggle('show_notifications', !localSettings.show_notifications)}
               rightContent={
-                <Switch 
-                  checked={localSettings.show_notifications} 
-                  onCheckedChange={(v: boolean) => handleToggle('show_notifications', v)} 
+                <Switch
+                  checked={localSettings.show_notifications}
+                  onCheckedChange={(v: boolean) => handleToggle('show_notifications', v)}
                 />
               }
             />
@@ -233,7 +233,7 @@ export default function NotificationSettingsScreen() {
 
         {/* Silence Section */}
         <View className="border-b border-border/5 px-6 py-6">
-          <Text className="mb-4 text-[12px] font-bold uppercase tracking-wider text-brand">
+          <Text className="font-semibol mb-4 text-[12px] uppercase tracking-wider text-brand">
             Silence
           </Text>
 
@@ -249,11 +249,13 @@ export default function NotificationSettingsScreen() {
               icon={Moon}
               title="Quiet Hours"
               subtitle="Automatically silence alerts during night."
-              onPress={() => handleToggle('quiet_hours_enabled', !localSettings.quiet_hours_enabled)}
+              onPress={() =>
+                handleToggle('quiet_hours_enabled', !localSettings.quiet_hours_enabled)
+              }
               rightContent={
-                <Switch 
-                  checked={localSettings.quiet_hours_enabled} 
-                  onCheckedChange={(v: boolean) => handleToggle('quiet_hours_enabled', v)} 
+                <Switch
+                  checked={localSettings.quiet_hours_enabled}
+                  onCheckedChange={(v: boolean) => handleToggle('quiet_hours_enabled', v)}
                 />
               }
             />
@@ -273,7 +275,7 @@ export default function NotificationSettingsScreen() {
                       setIsTimeDrawerVisible(true);
                     }}
                     className="mr-2 rounded-lg bg-brand/10 px-3 py-1.5">
-                    <Text className="text-[13px] font-bold text-brand">
+                    <Text className="font-semibol text-[13px] text-brand">
                       {formatTime(localSettings.quiet_hours_start)}
                     </Text>
                   </TouchableOpacity>
@@ -284,7 +286,7 @@ export default function NotificationSettingsScreen() {
                       setIsTimeDrawerVisible(true);
                     }}
                     className="rounded-lg bg-brand/10 px-3 py-1.5">
-                    <Text className="text-[13px] font-bold text-brand">
+                    <Text className="font-semibol text-[13px] text-brand">
                       {formatTime(localSettings.quiet_hours_end)}
                     </Text>
                   </TouchableOpacity>
@@ -300,7 +302,7 @@ export default function NotificationSettingsScreen() {
 
         {/* Message Notifications */}
         <View className="border-b border-border/5 px-6 py-6">
-          <Text className="mb-4 text-[12px] font-bold uppercase tracking-wider text-brand">
+          <Text className="font-semibol mb-4 text-[12px] uppercase tracking-wider text-brand">
             Messages
           </Text>
 
@@ -311,9 +313,9 @@ export default function NotificationSettingsScreen() {
               subtitle="Display message text in notifications."
               onPress={() => handleToggle('show_previews', !localSettings.show_previews)}
               rightContent={
-                <Switch 
-                  checked={localSettings.show_previews} 
-                  onCheckedChange={(v: boolean) => handleToggle('show_previews', v)} 
+                <Switch
+                  checked={localSettings.show_previews}
+                  onCheckedChange={(v: boolean) => handleToggle('show_previews', v)}
                 />
               }
             />
@@ -322,11 +324,13 @@ export default function NotificationSettingsScreen() {
               icon={Heart}
               title="Reaction Notifications"
               subtitle="Notify when someone reacts to your message."
-              onPress={() => handleToggle('reaction_notifications', !localSettings.reaction_notifications)}
+              onPress={() =>
+                handleToggle('reaction_notifications', !localSettings.reaction_notifications)
+              }
               rightContent={
-                <Switch 
-                  checked={localSettings.reaction_notifications} 
-                  onCheckedChange={(v: boolean) => handleToggle('reaction_notifications', v)} 
+                <Switch
+                  checked={localSettings.reaction_notifications}
+                  onCheckedChange={(v: boolean) => handleToggle('reaction_notifications', v)}
                 />
               }
             />
@@ -335,7 +339,7 @@ export default function NotificationSettingsScreen() {
 
         {/* Categories */}
         <View className="border-b border-border/5 px-6 py-6">
-          <Text className="mb-4 text-[12px] font-bold uppercase tracking-wider text-brand">
+          <Text className="font-semibol mb-4 text-[12px] uppercase tracking-wider text-brand">
             Categories
           </Text>
 
@@ -344,11 +348,13 @@ export default function NotificationSettingsScreen() {
               icon={Users}
               title="Group Notifications"
               subtitle="Manage alerts for group conversations."
-              onPress={() => handleToggle('group_notifications', !localSettings.group_notifications)}
+              onPress={() =>
+                handleToggle('group_notifications', !localSettings.group_notifications)
+              }
               rightContent={
-                <Switch 
-                  checked={localSettings.group_notifications} 
-                  onCheckedChange={(v: boolean) => handleToggle('group_notifications', v)} 
+                <Switch
+                  checked={localSettings.group_notifications}
+                  onCheckedChange={(v: boolean) => handleToggle('group_notifications', v)}
                 />
               }
             />
@@ -359,9 +365,9 @@ export default function NotificationSettingsScreen() {
               subtitle="Alerts for incoming voice and video calls."
               onPress={() => handleToggle('call_notifications', !localSettings.call_notifications)}
               rightContent={
-                <Switch 
-                  checked={localSettings.call_notifications} 
-                  onCheckedChange={(v: boolean) => handleToggle('call_notifications', v)} 
+                <Switch
+                  checked={localSettings.call_notifications}
+                  onCheckedChange={(v: boolean) => handleToggle('call_notifications', v)}
                 />
               }
             />
@@ -370,7 +376,7 @@ export default function NotificationSettingsScreen() {
 
         {/* In-App Behavior */}
         <View className="border-b border-border/5 px-6 py-6">
-          <Text className="mb-4 text-[12px] font-bold uppercase tracking-wider text-brand">
+          <Text className="font-semibol mb-4 text-[12px] uppercase tracking-wider text-brand">
             In-App Behavior
           </Text>
 
@@ -381,9 +387,9 @@ export default function NotificationSettingsScreen() {
               subtitle="Play sounds for incoming events while in app."
               onPress={() => handleToggle('in_app_sounds', !localSettings.in_app_sounds)}
               rightContent={
-                <Switch 
-                  checked={localSettings.in_app_sounds} 
-                  onCheckedChange={(v: boolean) => handleToggle('in_app_sounds', v)} 
+                <Switch
+                  checked={localSettings.in_app_sounds}
+                  onCheckedChange={(v: boolean) => handleToggle('in_app_sounds', v)}
                 />
               }
             />
@@ -401,9 +407,9 @@ export default function NotificationSettingsScreen() {
               subtitle="Vibration feedback for in-app events."
               onPress={() => handleToggle('in_app_vibrate', !localSettings.in_app_vibrate)}
               rightContent={
-                <Switch 
-                  checked={localSettings.in_app_vibrate} 
-                  onCheckedChange={(v: boolean) => handleToggle('in_app_vibrate', v)} 
+                <Switch
+                  checked={localSettings.in_app_vibrate}
+                  onCheckedChange={(v: boolean) => handleToggle('in_app_vibrate', v)}
                 />
               }
             />
@@ -425,7 +431,7 @@ export default function NotificationSettingsScreen() {
           <View className="mb-4 h-14 w-14 items-center justify-center rounded-2xl bg-brand/10">
             <Clock size={28} color={brandColor} strokeWidth={2} />
           </View>
-          <Text className="text-xl font-bold text-foreground">Snooze Alerts</Text>
+          <Text className="font-semibol text-xl text-foreground">Snooze Alerts</Text>
           <Text className="mt-2 px-6 text-center text-sm text-muted-foreground">
             Temporarily pause notifications to stay focused.
           </Text>
@@ -439,9 +445,9 @@ export default function NotificationSettingsScreen() {
                 className="mb-4 flex-row items-center justify-between rounded-2xl bg-brand/10 p-4 active:bg-brand/20">
                 <View className="flex-row items-center">
                   <Bell size={18} color={brandColor} strokeWidth={2.5} />
-                  <Text className="ml-3 font-bold text-brand">End Snooze</Text>
+                  <Text className="font-semibol ml-3 text-brand">End Snooze</Text>
                 </View>
-                <Text className="text-[11px] font-bold uppercase tracking-wider text-brand/60">
+                <Text className="font-semibol text-[11px] uppercase tracking-wider text-brand/60">
                   Active
                 </Text>
               </TouchableOpacity>
@@ -455,7 +461,7 @@ export default function NotificationSettingsScreen() {
               onPress={() => handleSnooze(option.value)}
               className="mb-3 flex-row items-center justify-between rounded-2xl bg-secondary/50 p-4 active:bg-secondary">
               <Text className="text-[15px] font-semibold text-foreground">{option.label}</Text>
-              <ChevronRight size={16} color="#71717a" strokeWidth={2.5} />
+              <ChevronRight size={16} className="text-muted-foreground" strokeWidth={2.5} />
             </TouchableOpacity>
           ))}
         </View>
@@ -463,7 +469,7 @@ export default function NotificationSettingsScreen() {
 
       {/* Time Picker Drawer for Quiet Hours */}
       <Drawer visible={isTimeDrawerVisible} onClose={() => setIsTimeDrawerVisible(false)}>
-        <Text className="mb-6 text-center text-xl font-bold text-foreground">
+        <Text className="font-semibol mb-6 text-center text-xl text-foreground">
           Select {editingTimeKey === 'quiet_hours_start' ? 'Start' : 'End'} Time
         </Text>
         <View className="relative">
@@ -482,7 +488,7 @@ export default function NotificationSettingsScreen() {
                       : 'bg-muted/40'
                   }`}>
                   <Text
-                    className={`font-bold ${
+                    className={`font-semibol ${
                       normalizeTime(localSettings?.[editingTimeKey!]) === time
                         ? 'text-white'
                         : 'text-foreground'
@@ -494,9 +500,9 @@ export default function NotificationSettingsScreen() {
             </View>
           </ScrollView>
 
-          {/* Scroll Hint Gradient */}
+          {/* Scroll Hint Gradient - Using background token */}
           <LinearGradient
-            colors={['transparent', isDark ? '#18181b' : '#ffffff']}
+            colors={['transparent', isDark ? 'hsl(0 0% 3.9%)' : 'hsl(0 0% 100%)']}
             className="pointer-events-none absolute bottom-0 left-0 right-0 h-20"
             style={{ opacity: 0.8 }}
           />

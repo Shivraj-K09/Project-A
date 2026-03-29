@@ -1,17 +1,19 @@
 import { Drawer } from '@/components/ui/drawer';
+import { Switch } from '@/components/ui/switch';
 import { Text } from '@/components/ui/text';
 import { SettingsGroup, cnSettingsMenuItem } from '@/lib/settings-ui';
 import { cn } from '@/lib/utils';
 import { useAppTheme, useThemeStore } from '@/store/theme-store';
 import * as Haptics from 'expo-haptics';
-import { Check, ChevronRight, MessageSquare, Monitor, Palette } from 'lucide-react-native';
+import { Haptic } from '@/lib/haptic-utils';
+import { Check, ChevronRight, MessageSquare, Monitor, Palette, Vibrate } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import { forwardRef, memo, useCallback, useEffect, useState } from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const ACCENT_COLORS = [
-  { name: 'Indigo', color: '#6366f1' },
+  { name: 'Indigo', color: '#7c86ff' },
   { name: 'Emerald', color: '#10b981' },
   { name: 'Rose', color: '#f43f5e' },
   { name: 'Amber', color: '#f59e0b' },
@@ -34,8 +36,16 @@ const BUBBLE_SHAPES = {
 export default function AppearanceSettingsScreen() {
   const insets = useSafeAreaInsets();
   const { colorScheme, setColorScheme } = useColorScheme();
-  const { accentColor, bubbleShape, stealthMode, setAccentColor, setBubbleShape, setStealthMode } =
-    useThemeStore();
+  const {
+    accentColor,
+    bubbleShape,
+    stealthMode,
+    hapticsEnabled,
+    setAccentColor,
+    setBubbleShape,
+    setStealthMode,
+    setHapticsEnabled,
+  } = useThemeStore();
   const { brandColor, isDark } = useAppTheme();
   const [editingKey, setEditingKey] = useState<'theme' | 'accent' | 'bubble' | null>(null);
   const [themeSetting, setThemeSetting] = useState<'light' | 'dark' | 'system'>('system');
@@ -58,7 +68,7 @@ export default function AppearanceSettingsScreen() {
 
   const handleSelectOption = useCallback(
     (key: string) => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      Haptic.impact(Haptics.ImpactFeedbackStyle.Medium);
 
       // Use queueMicrotask to ensure the state update happens AFTER the current render cycle/event
       queueMicrotask(() => {
@@ -94,7 +104,7 @@ export default function AppearanceSettingsScreen() {
           <View className="overflow-hidden rounded-[32px] border border-border/5 bg-muted/5 px-4 pb-8 pt-0">
             <View className="mt-6 gap-5">
               <View className="self-center rounded-2xl border border-border/5 bg-muted/10 px-4 py-1.5">
-                <Text className="text-[11px] font-bold text-muted-foreground/60">
+                <Text className="font-semibol text-[11px] text-muted-foreground/60">
                   Wednesday, October 23
                 </Text>
               </View>
@@ -102,25 +112,16 @@ export default function AppearanceSettingsScreen() {
               {/* Incoming Bubble */}
               <View
                 style={{
-                  backgroundColor:
-                    colorScheme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
-                  borderColor:
-                    colorScheme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
                   borderRadius: bubbleShape === 'round' ? 24 : bubbleShape === 'soft' ? 12 : 4,
                   borderTopLeftRadius: bubbleShape === 'sharp' ? 4 : 4,
                 }}
-                className="max-w-[85%] self-start overflow-hidden border px-4 py-3 shadow-sm">
+                className="max-w-[85%] self-start overflow-hidden bg-muted/80 px-4 py-3">
                 <Text
-                  style={{
-                    fontSize: 15,
-                    color: colorScheme === 'dark' ? '#fff' : '#1c1c1e',
-                  }}
-                  className="font-medium leading-[22px]">
+                  style={{ fontSize: 15 }}
+                  className="font-medium leading-[22px] text-foreground">
                   Swipe to browse wallpapers, or tap here to customize my bubble color! 🎨✨
                 </Text>
-                <Text
-                  style={{ color: colorScheme === 'dark' ? '#ffffff40' : '#00000040' }}
-                  className="mt-1.5 text-[10px] font-bold uppercase tracking-tight">
+                <Text className="font-semibol mt-1.5 text-[10px] uppercase tracking-tight text-muted-foreground/60">
                   11:04 PM
                 </Text>
               </View>
@@ -129,31 +130,18 @@ export default function AppearanceSettingsScreen() {
               <View
                 style={{
                   backgroundColor: accentColor,
-                  borderColor: 'rgba(255,255,255,0.15)',
-                  shadowColor: accentColor,
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.2,
-                  shadowRadius: 8,
-                  elevation: 4,
                   borderRadius: bubbleShape === 'round' ? 24 : bubbleShape === 'soft' ? 12 : 4,
                   borderTopRightRadius: bubbleShape === 'sharp' ? 4 : 4,
                 }}
-                className="max-w-[85%] self-end border px-4 py-3">
-                <Text
-                  style={{
-                    fontSize: 15,
-                    color: '#fff',
-                  }}
-                  className="font-semibold leading-[22px]">
+                className="max-w-[85%] self-end px-4 py-3 shadow-xl shadow-brand/20">
+                <Text style={{ fontSize: 15 }} className="font-semibold leading-[22px] text-white">
                   I can customize every message now. Personalization is level 100.
                 </Text>
                 <View className="mt-1.5 flex-row items-center justify-end">
-                  <Text
-                    style={{ color: 'rgba(255,255,255,0.6)' }}
-                    className="mr-1.5 text-[10px] font-bold uppercase tracking-tight">
+                  <Text className="font-semibol mr-1.5 text-[10px] uppercase tracking-tight text-white/60">
                     11:04 PM
                   </Text>
-                  <Check size={12} color="#fff" strokeWidth={3.5} />
+                  <Check size={12} color="white" strokeWidth={3.5} />
                 </View>
               </View>
             </View>
@@ -168,7 +156,7 @@ export default function AppearanceSettingsScreen() {
                 />
                 <View className="bg-background/90 px-5 py-2.5 rounded-full border border-brand/20 flex-row items-center space-x-2 shadow-sm">
                   <EyeOff size={16} color={brandColor} />
-                  <Text className="text-[13px] font-bold text-foreground tracking-tight">Privacy Shield Active</Text>
+                  <Text className="text-[13px] font-semibol text-foreground tracking-tight">Privacy Shield Active</Text>
                 </View>
               </View>
             )} */}
@@ -178,7 +166,7 @@ export default function AppearanceSettingsScreen() {
         {/* CUSTOMIZATION SECTION */}
         <View className="mb-10">
           <View className="mb-2 px-6">
-            <Text className="text-[11px] font-bold uppercase tracking-widest text-brand">
+            <Text className="font-semibol text-[11px] uppercase tracking-widest text-brand">
               Styling
             </Text>
           </View>
@@ -208,6 +196,21 @@ export default function AppearanceSettingsScreen() {
             />
 
             <SettingRow
+              icon={Vibrate}
+              title="Haptic Feedback"
+              subtitle={hapticsEnabled ? 'Tactile feedback active' : 'Disabled'}
+              onPress={() => {
+                Haptic.impact(Haptics.ImpactFeedbackStyle.Light);
+                setHapticsEnabled(!hapticsEnabled);
+              }}
+              rightContent={
+                <View className="pointer-events-none">
+                  <Switch checked={hapticsEnabled} onCheckedChange={() => {}} />
+                </View>
+              }
+            />
+
+            <SettingRow
               icon={MessageSquare}
               title="Bubble Style"
               subtitle={BUBBLE_SHAPES[bubbleShape]?.title || 'Select Style'}
@@ -233,7 +236,7 @@ export default function AppearanceSettingsScreen() {
           {/* {stealthMode && (
             <View className="mt-3 px-6">
               <Text className="text-[11px] font-medium leading-[16px] text-muted-foreground/50">
-                <Text className="font-bold text-brand">Pro Tip:</Text> When Shield is active, long-press any chat in your list to peek through the blur.
+                <Text className="font-semibol text-brand">Pro Tip:</Text> When Shield is active, long-press any chat in your list to peek through the blur.
               </Text>
             </View>
           )} */}
@@ -242,7 +245,7 @@ export default function AppearanceSettingsScreen() {
 
       {/* Standard List-style Drawers */}
       <Drawer visible={!!editingKey} onClose={() => setEditingKey(null)}>
-        <Text className="mb-6 text-center text-xl font-bold text-foreground">
+        <Text className="font-semibol mb-6 text-center text-xl text-foreground">
           {editingKey === 'theme'
             ? 'Select Theme'
             : editingKey === 'bubble'
@@ -282,7 +285,7 @@ export default function AppearanceSettingsScreen() {
                   ) : (
                     <View className="mr-4 flex-1">
                       <Text
-                        className={`text-[17px] font-bold ${isSelected ? 'text-brand' : 'text-foreground'}`}>
+                        className={`font-semibol text-[17px] ${isSelected ? 'text-brand' : 'text-foreground'}`}>
                         {data.title}
                       </Text>
                       <Text className="mt-1 text-[13px] font-medium text-muted-foreground/50">
@@ -294,7 +297,7 @@ export default function AppearanceSettingsScreen() {
                   {isAccent && (
                     <View className="flex-1">
                       <Text
-                        className={`text-[16px] font-bold ${isSelected ? 'text-brand' : 'text-foreground'}`}>
+                        className={`font-semibol text-[16px] ${isSelected ? 'text-brand' : 'text-foreground'}`}>
                         {option.name}
                       </Text>
                     </View>
@@ -323,7 +326,10 @@ export default function AppearanceSettingsScreen() {
 
 const SettingRow = memo(
   forwardRef(
-    ({ icon: Icon, title, subtitle, onPress, isLast: _isLast, color, ...props }: any, ref: any) => {
+    (
+      { icon: Icon, title, subtitle, onPress, isLast: _isLast, color, rightContent, ...props }: any,
+      ref: any
+    ) => {
       const { brandColor, isDark } = useAppTheme();
       const displayColor = color || brandColor;
 
@@ -347,7 +353,11 @@ const SettingRow = memo(
             </Text>
           </View>
 
-          <ChevronRight size={14} color="#71717a" strokeWidth={2.5} />
+          {rightContent ? (
+            rightContent
+          ) : (
+            <ChevronRight size={14} className="text-muted-foreground" strokeWidth={2.5} />
+          )}
         </TouchableOpacity>
       );
     }

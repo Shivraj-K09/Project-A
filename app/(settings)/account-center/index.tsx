@@ -6,13 +6,7 @@ import { useStableNavigate } from '@/lib/use-stable-navigate';
 import { cn } from '@/lib/utils';
 import { useAppTheme } from '@/store/theme-store';
 import { useThemeStore } from '@/store/theme-store';
-import {
-  Smartphone,
-  FileText,
-  UserCheck,
-  UserMinus,
-  Trash2,
-} from 'lucide-react-native';
+import { Smartphone, FileText, UserCheck, UserMinus, Trash2 } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import React from 'react';
 import { ActivityIndicator, ScrollView, TouchableOpacity, View } from 'react-native';
@@ -50,7 +44,7 @@ export default function AccountManagementScreen() {
         {/* Identity & Data Section */}
         <View className="border-b border-border/5 px-6 py-6" style={{ borderBottomWidth: 1 }}>
           <Text
-            className="mb-4 text-[12px] font-bold uppercase tracking-wider text-brand"
+            className="font-semibol mb-4 text-[12px] uppercase tracking-wider text-brand"
             style={{ color: brandColor }}>
             Identity & Data
           </Text>
@@ -75,7 +69,7 @@ export default function AccountManagementScreen() {
         {/* Exit Options Section */}
         <View className="border-b border-border/5 px-6 py-6" style={{ borderBottomWidth: 1 }}>
           <Text
-            className="mb-4 text-[12px] font-bold uppercase tracking-wider text-brand"
+            className="font-semibol mb-4 text-[12px] uppercase tracking-wider text-brand"
             style={{ color: brandColor }}>
             Account Control
           </Text>

@@ -239,4 +239,23 @@ export const SETTINGS_DIRECTORY = [
     searchContext: 'Account Center',
     destructive: true,
   },
+  {
+    id: 'support-management',
+    stackScreenKey: 'support-management',
+    href: '/support-management',
+    title: 'Support Requests',
+    subtitle: 'Manage incoming help tickets',
+    icon: ShieldCheck,
+    keywords: ['support', 'management', 'requests', 'supporter'],
+  },
+  {
+    id: 'support-management-detail',
+    stackScreenKey: 'support-management/[id]',
+    href: '/support-management/[id]',
+    title: 'Support Chat',
+    subtitle: 'Secure communication tunnel',
+    icon: ShieldCheck,
+    keywords: ['support', 'chat', 'management'],
+    searchContext: 'Support Requests',
+  },
 ] satisfies SettingsDirectoryEntry[];

@@ -44,8 +44,7 @@ const COL_1: ChatItem[] = [
     type: 'image',
     image: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=500&q=80',
     user: 'Arjun',
-    avatar:
-      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop',
   },
   {
     type: 'audio',
@@ -142,14 +141,10 @@ const COL_2: ChatItem[] = [
 
 const ChatBubble = React.memo(({ item }: { item: ChatItem }) => {
   return (
-    <View
-      style={{ height: CARD_HEIGHT }}
-      className="w-full justify-center px-0.5"
-    >
+    <View style={{ height: CARD_HEIGHT }} className="w-full justify-center px-0.5">
       <View
         style={{ height: CARD_HEIGHT - CARD_MARGIN }}
-        className="w-full justify-center overflow-hidden rounded-[20px] border border-black/5 bg-white shadow-sm dark:border-white/5 dark:bg-[#1A1A1A]"
-      >
+        className="w-full justify-center overflow-hidden rounded-[20px] border border-black/5 bg-white shadow-sm dark:border-white/5 dark:bg-[#1A1A1A]">
         <View className="gap-2 px-3">
           <View className="flex-row items-center gap-2.5">
             <Image
@@ -161,7 +156,7 @@ const ChatBubble = React.memo(({ item }: { item: ChatItem }) => {
             />
             <RNText
               numberOfLines={1}
-              className="flex-1 text-[10px] font-bold tracking-wide text-zinc-800 opacity-90 dark:text-zinc-200">
+              className="font-semibol flex-1 text-[10px] tracking-wide text-zinc-800 opacity-90 dark:text-zinc-200">
               {item.user}
             </RNText>
             <View className="flex-row items-center gap-1 opacity-80">
@@ -214,7 +209,7 @@ const ChatBubble = React.memo(({ item }: { item: ChatItem }) => {
                   <MapPin size={10} color="#4ade80" />
                 </View>
                 <View>
-                  <RNText className="text-[10px] font-bold text-zinc-800 dark:text-zinc-200">
+                  <RNText className="font-semibol text-[10px] text-zinc-800 dark:text-zinc-200">
                     Location
                   </RNText>
                   <RNText className="text-[8px] text-zinc-400 dark:text-zinc-500">
@@ -229,7 +224,7 @@ const ChatBubble = React.memo(({ item }: { item: ChatItem }) => {
                   <FileText size={10} color="#818cf8" />
                 </View>
                 <View>
-                  <RNText className="text-[10px] font-bold text-zinc-800 dark:text-zinc-200">
+                  <RNText className="font-semibol text-[10px] text-zinc-800 dark:text-zinc-200">
                     {item.file}
                   </RNText>
                   <RNText className="text-[8px] text-zinc-400 dark:text-zinc-500">
@@ -245,13 +240,7 @@ const ChatBubble = React.memo(({ item }: { item: ChatItem }) => {
   );
 });
 
-function MarqueeColumn({
-  data,
-  reverse = false,
-}: {
-  data: ChatItem[];
-  reverse?: boolean;
-}) {
+function MarqueeColumn({ data, reverse = false }: { data: ChatItem[]; reverse?: boolean }) {
   const totalHeight = data.length * CARD_HEIGHT;
   const duration = 60000;
   const translateY = useSharedValue(reverse ? -totalHeight : 0);

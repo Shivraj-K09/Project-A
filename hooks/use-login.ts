@@ -46,7 +46,7 @@ export function useLogin() {
           'Google Play Services is not available on this device. Please update or install it.'
         );
       } else {
-        console.error('[Auth] Google login error:', err);
+        if (__DEV__) console.error('[Auth] Google login error:', err);
         const raw = String(err?.message ?? '');
         if (/phone|23505|unique|duplicate|violat/i.test(raw)) {
           Alert.alert(

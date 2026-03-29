@@ -281,7 +281,7 @@ export default function ChatSettingsScreen() {
                   )}>
                   <Text
                     className={cn(
-                      'text-[15px] font-bold',
+                      'font-semibol text-[15px]',
                       isSelected ? 'text-brand' : 'text-foreground'
                     )}>
                     {option}

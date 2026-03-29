@@ -1,4 +1,5 @@
 import { ChatInput } from '@/components/shared/chat-input';
+import { MessageStatusIcon } from '@/components/shared/message-status-icon';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { SupportMessage, useSupportChat } from '@/hooks/use-support-chat';
@@ -6,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { useAppTheme, useThemeStore } from '@/store/theme-store';
 import dayjs from 'dayjs';
 import { Image } from 'expo-image';
-import { Check, Loader2, ShieldCheck } from 'lucide-react-native';
+import { Loader2, ShieldCheck } from 'lucide-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, TouchableOpacity, View } from 'react-native';
 import Animated, {
@@ -24,22 +25,14 @@ export default function SupportChatScreen() {
   const [inputText, setInputText] = useState('');
   const scrollRef = useRef<ScrollView>(null);
 
-  const { messages, sendMessage, sendImage, endChat, isLoading, session } = useSupportChat();
+  const { messages, sendMessage, sendImage, endChat, isLoading, session, isRecipientOnline } =
+    useSupportChat();
   const keyboard = useAnimatedKeyboard();
   const [isEndModalVisible, setIsEndModalVisible] = useState(false);
 
   // Process messages to inject Date Headers and the Permanent Welcome Message
   const displayGroups = useMemo(() => {
     const groups: (SupportMessage | { type: 'date'; date: string })[] = [];
-
-    // Always include a system welcome at top
-    groups.push({
-      id: 'welcome_permanent',
-      text: 'How can we help today? Our security team is ready to assist in this E2EE tunnel.',
-      sender_id: 'system',
-      created_at: session?.created_at || new Date().toISOString(),
-      is_mine: false,
-    } as SupportMessage);
 
     let lastDate = '';
     messages.forEach((msg) => {
@@ -83,36 +76,34 @@ export default function SupportChatScreen() {
     }
   }, [messages.length]);
 
-  if (isLoading) {
-    return (
-      <View className="flex-1 items-center justify-center bg-background">
-        <Loader2 size={28} color={brandColor} className="animate-spin" />
-        <Text className="mt-5 text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground">
-          Initializing Secure Tunnel
-        </Text>
-      </View>
-    );
-  }
-
   return (
     <View className="flex-1 bg-background">
       {/* Header Info */}
       <View className="flex-row items-center justify-between border-b border-border/50 bg-background px-5 py-3.5">
         <View className="flex-row items-center">
-          <View className="mr-2.5 h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+          {session && (
+            <View
+              className={cn(
+                'mr-2.5 h-2 w-2 rounded-full',
+                isRecipientOnline ? 'animate-pulse bg-emerald-500' : 'bg-muted-foreground/30'
+              )}
+            />
+          )}
           <Text className="text-[11px] font-black uppercase tracking-[0.15em] text-foreground/80">
-            Secure Session {session?.id.slice(0, 6)}
+            {isRecipientOnline ? 'Support Agent Online' : 'Support Agent Offline'}
+            {!isRecipientOnline && session && ` • Session ${session.id.slice(0, 6)}`}
           </Text>
         </View>
 
         {session && (
-          <TouchableOpacity
+          <Button
+            variant="ghost"
             onPress={() => setIsEndModalVisible(true)}
-            className="rounded-full bg-destructive/5 px-3 py-1 active:opacity-70">
+            className="h-7 rounded-full bg-destructive/10 px-3 active:opacity-60">
             <Text className="text-[10px] font-black uppercase tracking-widest text-destructive">
               End Chat
             </Text>
-          </TouchableOpacity>
+          </Button>
         )}
       </View>
 
@@ -139,12 +130,18 @@ export default function SupportChatScreen() {
             </Text>
           </View>
 
+          {isLoading && messages.length === 0 && (
+            <View className="items-center justify-center py-10">
+              <Loader2 size={24} color={brandColor} className="animate-spin opacity-50" />
+            </View>
+          )}
+
           {displayGroups.map((item, idx) => {
             if ('type' in item && item.type === 'date') {
               return (
                 <View key={`date-${idx}`} className="my-6 items-center">
                   <View className="rounded-full bg-muted/30 px-3 py-1">
-                    <Text className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    <Text className="font-semibol text-[10px] uppercase tracking-widest text-muted-foreground">
                       {item.date}
                     </Text>
                   </View>
@@ -187,8 +184,15 @@ export default function SupportChatScreen() {
                         <Text className="text-[9px] font-black uppercase tracking-tighter text-white/90">
                           {dayjs(msg.created_at).format('h:mm A')}
                         </Text>
-                        {msg.is_mine && msg.status === 'sent' && (
-                          <Check size={10} color="#fff" strokeWidth={3} className="ml-1" />
+                        {msg.is_mine && (
+                          <View className="ml-1">
+                            <MessageStatusIcon
+                              status={msg.status}
+                              brandColor={brandColor}
+                              isDark={isDark}
+                              colorOnMine
+                            />
+                          </View>
                         )}
                       </View>
                     </View>
@@ -201,7 +205,7 @@ export default function SupportChatScreen() {
                         )}>
                         {msg.text}
                       </Text>
-                      <View className="mt-1.5 flex-row items-center justify-end opacity-60">
+                      <View className="mt-1.5 flex-row items-center justify-end">
                         <Text
                           className={cn(
                             'text-[9px] font-black uppercase tracking-tighter',
@@ -209,8 +213,15 @@ export default function SupportChatScreen() {
                           )}>
                           {dayjs(msg.created_at).format('h:mm A')}
                         </Text>
-                        {msg.is_mine && msg.status === 'sent' && (
-                          <Check size={10} color="#fff" strokeWidth={3} className="ml-1" />
+                        {msg.is_mine && (
+                          <View className="ml-1">
+                            <MessageStatusIcon
+                              status={msg.status}
+                              brandColor={brandColor}
+                              isDark={isDark}
+                              colorOnMine
+                            />
+                          </View>
                         )}
                       </View>
                     </>
@@ -234,9 +245,9 @@ export default function SupportChatScreen() {
 
           <Animated.View
             entering={FadeIn.duration(300)}
-            className="w-full max-w-[320px] overflow-hidden rounded-[28px] border border-border/20 bg-background shadow-2xl">
+            className="w-full max-w-[320px] overflow-hidden rounded-[28px] bg-background shadow-2xl">
             <View className="items-center p-8">
-              <Text className="mb-2 text-center text-[17px] font-bold text-foreground">
+              <Text className="font-semibol mb-2 text-center text-[17px] text-foreground">
                 End Support Session?
               </Text>
               <Text className="text-center text-[13px] font-medium leading-[18px] text-muted-foreground opacity-70">
@@ -251,15 +262,15 @@ export default function SupportChatScreen() {
                   setIsEndModalVisible(false);
                   endChat();
                 }}
-                className="h-[56px] w-full rounded-none border-b border-border/10">
+                className="h-[60px] w-full rounded-none border-b border-border/10 active:bg-destructive/5">
                 <Text className="text-[15px] font-bold text-destructive">End Session</Text>
               </Button>
 
               <Button
                 variant="ghost"
                 onPress={() => setIsEndModalVisible(false)}
-                className="h-[56px] w-full rounded-none">
-                <Text className="text-[14px] font-semibold text-foreground/50">Cancel</Text>
+                className="h-[60px] w-full rounded-none active:bg-muted/10">
+                <Text className="text-[14px] font-bold text-muted-foreground/60">Cancel</Text>
               </Button>
             </View>
           </Animated.View>

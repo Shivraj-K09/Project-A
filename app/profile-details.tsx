@@ -4,7 +4,7 @@ import { ProfileEditableRow } from '@/components/profile/profile-editable-row';
 import { ImageViewerModal } from '@/components/profile/image-viewer-modal';
 import { formatPhoneNumber } from '@/lib/utils';
 import { useAppTheme } from '@/store/theme-store';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import {
   Calendar,
   Camera,
@@ -13,9 +13,10 @@ import {
   LogOut,
   Mail,
   Phone,
-  ShieldCheck,
-  User as UserIcon,
+  User as LucideUserIcon,
 } from 'lucide-react-native';
+import { Icon, UserIcon } from '@/components/ui/icon';
+import { Haptic } from '@/lib/haptic-utils';
 import React from 'react';
 import {
   ActivityIndicator,
@@ -26,14 +27,17 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SettingsGroup } from '@/lib/settings-ui';
+import appConfig from '../app.json';
 import { useProfileDetails } from '@/hooks/user/profile-details';
+import { Header } from '@/components/shared/header';
 
 export default function ProfileDetailsScreen() {
   const insets = useSafeAreaInsets();
   const { brandColor, isDark } = useAppTheme();
+  const router = useRouter();
 
   const {
-    router,
     profile,
     details,
     isLoading,
@@ -49,7 +53,6 @@ export default function ProfileDetailsScreen() {
     handleImagePick,
   } = useProfileDetails();
 
-  // Guard against unauthenticated render
   if ((isLoading || !isAuthenticated) && !isSigningOut) {
     return (
       <View className="flex-1 items-center justify-center bg-background">
@@ -59,170 +62,149 @@ export default function ProfileDetailsScreen() {
   }
 
   const username = profile?.username || 'User';
-  const initial = username.charAt(0).toUpperCase();
   const formattedPhone = profile?.phone_number
     ? formatPhoneNumber(profile.phone_number, profile.country_code)
     : 'Not set';
 
+  const SectionHeader = ({ title }: { title: string }) => (
+    <Text className="font-semibol px-5 py-2 text-[10px] uppercase tracking-wider text-brand">
+      {title}
+    </Text>
+  );
+
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       className="flex-1 bg-background">
       <Stack.Screen options={{ headerShown: false }} />
 
-      {/* Header */}
-      <View
-        style={{ paddingTop: Math.max(insets.top, 20) }}
-        className="border-b border-border/5 bg-background shadow-sm">
-        <View className="h-16 flex-row items-center justify-between px-6">
-          <View className="flex-row items-center">
-            <TouchableOpacity
-              onPress={() => router.back()}
-              activeOpacity={0.7}
-              className="-ml-2 h-10 w-10 items-center justify-center rounded-full">
-              <ChevronLeft size={24} color={isDark ? '#e4e4e7' : '#18181b'} strokeWidth={2} />
-            </TouchableOpacity>
-            <Text className="ml-2 text-xl font-bold tracking-tight text-foreground">
-              Account Details
-            </Text>
-          </View>
-        </View>
-      </View>
+      <Header title="Profile Details" showBackButton />
 
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{
-          paddingBottom: insets.bottom + 120,
-          paddingHorizontal: 16,
-        }}
-        keyboardShouldPersistTaps="always"
-        showsVerticalScrollIndicator={false}>
-        {/* Avatar Section */}
-        <View className="items-center pb-8 pt-8">
-          <View className="relative">
+        contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets={true}>
+        {/* REFINED COMPACT HERO (RESOLVED NESTING ISSUE) */}
+        <View className="items-center px-6 py-10">
+          <View className="relative h-24 w-24 items-center justify-center">
+            {/* MAIN AVATAR TOUCHABLE */}
             <TouchableOpacity
               activeOpacity={0.9}
               onPress={() => profile?.avatar_url && setShowViewer(true)}
-              className="h-28 w-28 items-center justify-center rounded-full border border-brand/20 p-1">
-              <Avatar alt={username} className="h-full w-full rounded-full bg-muted shadow-sm">
+              className="h-24 w-24 items-center justify-center rounded-full border border-border/10 bg-card p-1 shadow-sm">
+              <Avatar alt={username} className="h-full w-full rounded-full">
                 <AvatarImage
-                  source={{ uri: profile?.avatar_url || '' }}
-                  className="h-full w-full rounded-full"
+                  source={profile?.avatar_url ? { uri: profile.avatar_url } : undefined}
+                  className="size-full"
                 />
                 <AvatarFallback className="flex h-full w-full items-center justify-center bg-brand">
-                  <Text className="text-3xl font-bold text-white">{initial}</Text>
+                  <Icon as={UserIcon} size={48} color="white" />
                 </AvatarFallback>
               </Avatar>
             </TouchableOpacity>
+
+            {/* CAMERA ACTION (SIBLING, NOT NESTED) */}
             <TouchableOpacity
               onPress={handleImagePick}
               disabled={isUploading || isUpdatingProfile}
-              activeOpacity={0.8}
-              className="absolute bottom-0 right-0 h-9 w-9 items-center justify-center rounded-full border-4 border-background bg-brand shadow-lg">
+              className="absolute bottom-0 right-0 h-8 w-8 items-center justify-center rounded-full border-4 border-background bg-brand shadow-sm"
+              activeOpacity={0.8}>
               {isUploading || isUpdatingProfile ? (
                 <ActivityIndicator size="small" color="white" />
               ) : (
-                <Camera size={14} color="white" strokeWidth={2.5} />
+                <Camera size={12} color="white" strokeWidth={3} />
               )}
             </TouchableOpacity>
           </View>
 
-          <View className="mt-3 items-center">
-            <Text className="text-2xl font-semibold tracking-tight text-foreground">
-              {profile?.username}
+          <View className="mt-4 items-center">
+            <Text
+              className="font-semibol text-2xl tracking-tight text-foreground"
+              numberOfLines={1}>
+              {username}
             </Text>
+            {/* Email display removed for privacy as requested */}
           </View>
         </View>
 
-        {/* Form Sections */}
-        <View className="gap-4">
-          <View className="overflow-hidden rounded-3xl border border-border/10 bg-card shadow-sm">
-            <View className="px-3 pt-4">
-              <Text className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted-foreground">
-                Account Information
-              </Text>
-            </View>
-            <View className="pb-2">
-              <ProfileEditableRow
-                icon={UserIcon}
-                title="Full Name"
-                value={profile?.username}
-                onSave={(val) => handleUpdateProfile({ username: val })}
-              />
-              <ProfileEditableRow
-                icon={Mail}
-                title="Email"
-                value={profile?.email}
-                editable={false}
-                isSensitive
-              />
-              <ProfileEditableRow
-                icon={Phone}
-                title="Mobile"
-                value={formattedPhone}
-                editable={false}
-                isSensitive
-                isLast
-              />
-            </View>
-          </View>
-
-          <View className="overflow-hidden rounded-3xl border border-border/10 bg-card shadow-sm">
-            <View className="px-3 pt-4">
-              <Text className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted-foreground">
-                About You
-              </Text>
-            </View>
-            <View className="pb-2">
-              <ProfileEditableRow
-                icon={Calendar}
-                title="Birth Date"
-                value={details?.birthdate}
-                placeholder="Not set"
-                type="date"
-                onSave={(val) => handleUpdateDetails({ birthdate: val })}
-              />
-              <ProfileEditableRow
-                icon={Info}
-                title="Bio"
-                value={details?.about}
-                placeholder="Tell us about yourself..."
-                onSave={(val) => handleUpdateDetails({ about: val })}
-                isLast
-              />
-            </View>
-          </View>
+        <View className="mt-2 px-5">
+          <SectionHeader title="Account Information" />
+          <SettingsGroup>
+            <ProfileEditableRow
+              icon={LucideUserIcon}
+              title="Username"
+              value={username}
+              onSave={(val) => handleUpdateProfile({ username: val })}
+            />
+            <ProfileEditableRow
+              icon={Mail}
+              title="Primary Email"
+              value={profile?.email}
+              editable={false}
+              isSensitive={true}
+            />
+            <ProfileEditableRow
+              icon={Phone}
+              title="Mobile Phone"
+              value={formattedPhone}
+              editable={false}
+              isSensitive={true}
+            />
+          </SettingsGroup>
         </View>
 
-        {/* Footer */}
-        <View className="mt-10 items-center">
+        <View className="mt-4 px-5">
+          <SectionHeader title="Personal Details" />
+          <SettingsGroup>
+            <ProfileEditableRow
+              icon={Calendar}
+              title="Birth Date"
+              value={details?.birthdate}
+              placeholder="Not set"
+              type="date"
+              onSave={(val) => handleUpdateDetails({ birthdate: val })}
+            />
+            <ProfileEditableRow
+              icon={Info}
+              title="Bio"
+              value={details?.about}
+              placeholder="Share a short bio..."
+              onSave={(val) => handleUpdateDetails({ about: val })}
+            />
+          </SettingsGroup>
+        </View>
+
+        {/* STANDALONE ACTION */}
+        <View className="mt-8 px-5">
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={handleSignOut}
             disabled={isSigningOut}
-            className="w-full flex-row items-center justify-center rounded-2xl border border-destructive bg-destructive py-4 shadow-sm">
+            className="h-15 w-full flex-row items-center justify-center rounded-xl border border-destructive/10 bg-destructive/5 py-4">
             {isSigningOut ? (
-              <View className="flex-row items-center justify-center">
-                <ActivityIndicator color="white" size="small" />
-                <Text className="ml-3 text-base font-bold text-white">Signing Out...</Text>
-              </View>
+              <ActivityIndicator color="#ef4444" size="small" />
             ) : (
-              <>
-                <LogOut size={18} color="white" strokeWidth={2.5} />
-                <Text className="ml-3 text-base font-bold text-white">Sign Out</Text>
-              </>
+              <View className="flex-row items-center gap-2">
+                <LogOut size={16} color="#ef4444" strokeWidth={2.5} />
+                <Text className="font-semibol text-base text-destructive">Sign Out Account</Text>
+              </View>
             )}
           </TouchableOpacity>
+        </View>
 
-          <View className="mt-10 items-center justify-center">
-            <View className="mb-3 flex-row items-center gap-2 rounded-full border border-brand/20 bg-brand/[0.05] px-4 py-2">
-              <ShieldCheck size={12} color={brandColor} strokeWidth={2.5} />
-              <Text className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand">
-                End-to-end encrypted
-              </Text>
-            </View>
+        <View className="mb-10 mt-12 items-center justify-center">
+          <View className="mb-2 flex-row items-center gap-1.5 opacity-45">
+            <View className="h-[1px] w-4 bg-muted-foreground" />
+            <Text className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">
+              {appConfig.expo.name}
+            </Text>
+            <View className="h-[1px] w-4 bg-muted-foreground" />
           </View>
+          <Text className="font-semibol text-[9px] uppercase tracking-[0.15em] text-muted-foreground/60">
+            Release v{appConfig.expo.version}
+          </Text>
         </View>
       </ScrollView>
 

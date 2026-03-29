@@ -36,3 +36,14 @@ export function formatPhoneNumber(phoneNumber: string | null | undefined, countr
 
   return phone;
 }
+
+export function maskPhoneNumber(phone: string | null | undefined) {
+  if (!phone) return '';
+  const parts = phone.split(' ');
+  if (parts.length < 2) return '•••• ••••';
+  
+  const [cc, number] = parts;
+  // Show only last 3 digits for privacy
+  const last3 = number.slice(-3);
+  return `${cc} ••••• ••${last3}`;
+}

@@ -2,119 +2,47 @@ import { useAuth } from '@/contexts/auth-context';
 import { CryptoHelper } from '@/lib/crypto';
 import { supabase } from '@/lib/supabase';
 import { encode } from 'base64-arraybuffer';
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { SupportMessage, SupportSession, RecipientKey } from './types';
+import { applySupportReceiptStatuses } from './message-status';
+import { markMessagesDelivered, markMessagesSeen } from './message-receipts';
+import { SECURITY_CONFIG } from '@/lib/config';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useIsFocused } from '@react-navigation/native';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 export function useSupportMessages(
   session: SupportSession | null, 
   recipientKeys: RecipientKey[], 
   profileRowId: string | null
 ) {
-  const { user } = useAuth();
-  const [messages, setMessages] = useState<SupportMessage[]>([]);
+  const qc = useQueryClient();
   const keysCache = useRef<Record<string, string>>({});
+  const seenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isFocused = useIsFocused();
+  
+  // REAL-TIME STATE
+  const [isRecipientOnline, setIsRecipientOnline] = useState(false);
+  const presenceChannelRef = useRef<RealtimeChannel | null>(null);
 
-  // 1. Initial Load
-  const loadMessages = useCallback(async (sessionId: string, currentKeys: RecipientKey[]) => {
-    const { data } = await supabase
-      .from('support_messages')
-      .select('*')
-      .eq('session_id', sessionId)
-      .order('created_at', { ascending: true });
-
-    if (data && user) {
-      const decrypted = await Promise.all(
-        data.map((m) => decryptMessage(m, currentKeys, user.id))
-      );
-      setMessages(decrypted.filter(Boolean) as SupportMessage[]);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (session?.id && recipientKeys.length > 0) {
-      loadMessages(session.id, recipientKeys);
-    }
-  }, [session?.id, recipientKeys, loadMessages]);
-
-  // 2. Real-time Subscription
-  useEffect(() => {
-    if (!session?.id || recipientKeys.length === 0 || !user) return;
-
-    const channel = supabase
-      .channel(`support_messages:${session.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'support_messages',
-          filter: `session_id=eq.${session.id}`,
-        },
-        async (payload) => {
-          const newMsg = payload.new as any;
-
-          // Optimistic UI Reconciliation
-          if (newMsg.sender_id === profileRowId) {
-            const tempId = newMsg.metadata?.temp_id;
-
-            setMessages((prev) => {
-              const matchIdx = tempId ? prev.findIndex((m) => m.id === tempId) : -1;
-              const pendingIdx = matchIdx > -1 ? matchIdx : prev.findIndex((m) => m.status === 'pending');
-
-              if (pendingIdx > -1) {
-                const updated = [...prev];
-                updated[pendingIdx] = {
-                  ...updated[pendingIdx],
-                  id: newMsg.id,
-                  created_at: newMsg.created_at,
-                  status: 'sent',
-                };
-                return updated;
-              }
-              return prev;
-            });
-            return;
-          }
-
-          const decrypted = await decryptMessage(newMsg, recipientKeys, user.id);
-          if (decrypted) {
-            setMessages((prev) => {
-              if (prev.find((m) => m.id === decrypted.id)) return prev;
-              return [...prev, decrypted];
-            });
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [session?.id, recipientKeys, user, profileRowId]);
-
-  // 3. Decryption Utility
-  const decryptMessage = async (
+  // 1. Decryption Utility (Memoized for useQuery)
+  const decryptMessage = useCallback(async (
     msg: any, 
-    currentKeys: RecipientKey[], 
     currentUserId: string
   ): Promise<SupportMessage | null> => {
     try {
-      const wrappedKey = msg.keys_header[currentUserId];
+      let wrappedKey = msg.keys_header[currentUserId];
+      if (!wrappedKey) wrappedKey = msg.keys_header[SECURITY_CONFIG.AUDITOR_SLOT_ID];
       if (!wrappedKey) return null;
 
       let senderKey = keysCache.current[msg.sender_id];
       if (!senderKey) {
-        const { data: sender } = await supabase
-          .from('users')
-          .select('public_key')
-          .eq('id', msg.sender_id)
-          .single();
+        const { data: sender } = await supabase.from('users').select('public_key').eq('id', msg.sender_id).single();
         if (sender?.public_key) {
           senderKey = sender.public_key;
           keysCache.current[msg.sender_id] = senderKey;
         }
       }
-
       if (!senderKey) return null;
 
       let text = '';
@@ -122,15 +50,11 @@ export function useSupportMessages(
 
       if (msg.message_type === 'image' && msg.attachment_path) {
         text = ' [Encrypted Image] ';
-        const { data: blob } = await supabase.storage
-          .from('support_attachments')
-          .download(msg.attachment_path);
-
+        const { data: blob } = await supabase.storage.from('support_attachments').download(msg.attachment_path);
         if (blob) {
           const buffer = await blob.arrayBuffer();
           const decrypted = await CryptoHelper.decryptFile(buffer, wrappedKey, senderKey);
-          const base64 = encode(decrypted);
-          imageUrl = `data:image/jpeg;base64,${base64}`;
+          imageUrl = `data:image/jpeg;base64,${encode(decrypted)}`;
         }
       } else {
         text = await CryptoHelper.decrypt(msg.encrypted_blob, wrappedKey, senderKey);
@@ -141,18 +65,92 @@ export function useSupportMessages(
         sender_id: msg.sender_id,
         text,
         created_at: msg.created_at,
-        is_mine: msg.sender_id === profileRowId,
+        is_mine: msg.metadata?.is_system_greeting ? false : msg.sender_id === profileRowId,
         status: 'sent',
         message_type: msg.message_type,
         attachment_path: msg.attachment_path,
         imageUrl,
+        delivered_at: msg.delivered_at,
+        seen_at: msg.seen_at,
       };
     } catch (err) {
-      console.error('[Decrypt Message] Error:', err);
       return null;
     }
-  };
+  }, [profileRowId]);
 
+  // 2. TanStack Query for Dynamic Polling & Base State
+  const { data: messages = [], isLoading } = useQuery({
+    queryKey: ['support_messages', session?.id],
+    queryFn: async () => {
+      if (!session?.id || !profileRowId) return [];
+      const { data } = await supabase.from('support_messages').select('*').eq('session_id', session.id).order('created_at', { ascending: true });
+      if (!data) return [];
+
+      const inboundUndeliveredIds = data
+        .filter((m) => m.sender_id !== profileRowId && !m.delivered_at)
+        .map((m) => m.id);
+
+      if (inboundUndeliveredIds.length > 0) await markMessagesDelivered(inboundUndeliveredIds);
+
+      const decrypted = await Promise.all(data.map((m) => decryptMessage(m, profileRowId)));
+      return applySupportReceiptStatuses(decrypted.filter(Boolean) as SupportMessage[]);
+    },
+    enabled: !!session?.id && !!profileRowId,
+    refetchInterval: 5000,
+  });
+
+  // 3. REAL-TIME ENGINE
+  useEffect(() => {
+    if (!session?.id || !profileRowId) return;
+
+    const pChannel = supabase.channel(`support_presence:${session.id}`, { config: { presence: { key: profileRowId } } });
+    pChannel
+      .on('presence', { event: 'sync' }, () => {
+        const others = Object.keys(pChannel.presenceState()).filter(id => id !== profileRowId);
+        setIsRecipientOnline(others.length > 0);
+      })
+      .on('postgres_changes', { 
+        event: 'INSERT', schema: 'public', table: 'support_messages', filter: `session_id=eq.${session.id}`
+      }, async (payload) => {
+        if (payload.new.sender_id !== profileRowId) {
+          await markMessagesDelivered([payload.new.id]);
+          qc.invalidateQueries({ queryKey: ['support_messages', session.id] });
+        }
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') await pChannel.track({ online_at: new Date().toISOString() });
+      });
+
+    return () => { void pChannel.unsubscribe(); };
+  }, [session?.id, profileRowId, qc]);
+
+  // 4. Seen Receipts Logic
+  useEffect(() => {
+    if (!isFocused) return;
+
+    const unseenInboundIds = messages
+      .filter((message) => !message.is_mine && !message.seen_at)
+      .map((message) => message.id);
+
+    if (unseenInboundIds.length === 0) return;
+
+    seenTimerRef.current = setTimeout(() => {
+      void markMessagesSeen(unseenInboundIds);
+    }, 600);
+
+    return () => {
+      if (seenTimerRef.current) {
+        clearTimeout(seenTimerRef.current);
+        seenTimerRef.current = null;
+      }
+    };
+  }, [isFocused, messages]);
+
+  const setMessages = useCallback((updater: any) => {
+    qc.setQueryData(['support_messages', session?.id], updater);
+  }, [qc, session?.id]);
+
+  // 5. Send Message with Optimistic UI
   const sendMessage = useCallback(async (text: string) => {
     if (!session || !profileRowId || recipientKeys.length === 0) return;
 
@@ -166,11 +164,11 @@ export function useSupportMessages(
       status: 'pending',
     };
 
-    setMessages((prev) => [...prev, optimisticMsg]);
+    setMessages((prev: SupportMessage[] = []) => [...prev, optimisticMsg]);
 
     try {
       const { blob, header } = await CryptoHelper.encrypt(text, recipientKeys);
-      const { error } = await supabase
+      const { data, error } = await supabase
           .from('support_messages')
           .insert({
             session_id: session.id,
@@ -178,14 +176,21 @@ export function useSupportMessages(
             encrypted_blob: blob,
             keys_header: header,
             metadata: { temp_id: tempId },
-          });
+          })
+          .select()
+          .single();
 
-      if (error) throw error;
+      if (error || !data) throw error || new Error('Insert failed');
+
+      setMessages((prev: SupportMessage[] = []) => 
+        prev.map(m => m.id === tempId ? { ...m, id: data.id, created_at: data.created_at, status: 'sent' } : m)
+      );
+
     } catch (err) {
-      console.error('[Send Message] Error:', err);
-      setMessages((prev) => prev.filter((m) => m.id !== tempId));
+      if (__DEV__) console.error('[Send Message] Error:', err);
+      setMessages((prev: SupportMessage[] = []) => prev.filter((m) => m.id !== tempId));
     }
-  }, [session, profileRowId, recipientKeys]);
+  }, [session, profileRowId, recipientKeys, setMessages]);
 
-  return { messages, setMessages, sendMessage };
+  return { messages, setMessages, sendMessage, isLoading, isRecipientOnline };
 }

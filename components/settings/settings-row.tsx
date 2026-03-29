@@ -5,6 +5,7 @@ import { useAppTheme } from '@/store/theme-store';
 import { ChevronRight } from 'lucide-react-native';
 import React, { memo } from 'react';
 import { TouchableOpacity, View } from 'react-native';
+import { Haptic } from '@/lib/haptic-utils';
 
 export interface SettingsRowProps {
   /** Lucide icon component */
@@ -49,10 +50,17 @@ export const SettingsRow = memo(
   }: SettingsRowProps) => {
     const { brandColor } = useAppTheme();
 
+    const handlePress = () => {
+      if (onPress) {
+        Haptic.selection();
+        onPress();
+      }
+    };
+
     const Content = (
       <TouchableOpacity
         activeOpacity={0.7}
-        onPress={onPress}
+        onPress={handlePress}
         disabled={!onPress}
         className={cn(
           isGrouped

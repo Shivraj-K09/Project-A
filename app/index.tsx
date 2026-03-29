@@ -1,5 +1,6 @@
 import { useAuth } from '@/contexts/auth-context';
 import { useProfileCompletion } from '@/hooks/use-user';
+import { useAppTheme } from '@/store/theme-store';
 import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
@@ -7,6 +8,7 @@ import { ActivityIndicator, View } from 'react-native';
 export default function BootstrapScreen() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { isLoading: profileLoading } = useProfileCompletion();
+  const { brandColor } = useAppTheme();
 
   const [isReady, setIsReady] = useState(false);
 
@@ -31,7 +33,7 @@ export default function BootstrapScreen() {
   return (
     <View className="flex-1 items-center justify-center bg-background">
       {(!isReady || appLoading) && (
-        <ActivityIndicator size="small" color="#6366f1" className="opacity-30" />
+        <ActivityIndicator size="small" color={brandColor} className="opacity-30" />
       )}
     </View>
   );

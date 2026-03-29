@@ -64,7 +64,7 @@ export default function AppLockOverlay({
         setIsUnlocked(true);
       }
     } catch (err) {
-      console.error('[AppLock] Auth error:', err);
+      if (__DEV__) console.error('[AppLock] Auth error:', err);
     } finally {
       setIsAuthenticating(false);
     }

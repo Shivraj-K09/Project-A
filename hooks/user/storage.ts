@@ -37,7 +37,7 @@ const getRuntimeDiskSpace = async () => {
     ]);
     return { total, free };
   } catch (err) {
-    console.error('[Storage] Capacity check failed:', err);
+    if (__DEV__) console.error('[Storage] Capacity check failed:', err);
     return { total: 0, free: 0 };
   }
 };
@@ -110,7 +110,7 @@ const storageWalker = async (dir: string | null, options: WalkerOptions) => {
       );
     }
   } catch (e) {
-    console.error(`[StorageWalker] Failed at ${dir}:`, e);
+    if (__DEV__) console.error(`[StorageWalker] Failed at ${dir}:`, e);
   }
 };
 
@@ -164,7 +164,9 @@ export function useStorageUsage() {
           .select()
           .maybeSingle();
 
-        if (upsertError) console.error('[Storage] Sync error:', upsertError);
+        if (upsertError) {
+          if (__DEV__) console.error('[Storage] Sync error:', upsertError);
+        }
 
         return {
           user_id: user!.id,
@@ -233,7 +235,7 @@ export function useClearStorage() {
           ]);
         }
       } catch (e) {
-        console.error('Physical deletion failed', e);
+        if (__DEV__) console.error('Physical deletion failed', e);
       }
 
       const [diskSpace, localCounts] = await Promise.all([
@@ -255,7 +257,9 @@ export function useClearStorage() {
           .select()
           .maybeSingle();
 
-        if (error) console.error('[Storage] Clear sync error:', error);
+        if (error) {
+          if (__DEV__) console.error('[Storage] Clear sync error:', error);
+        }
 
         return {
           user_id: user!.id,

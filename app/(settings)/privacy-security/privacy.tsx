@@ -3,6 +3,7 @@ import { Switch } from '@/components/ui/switch';
 import { Text } from '@/components/ui/text';
 import { PrivacySettings, usePrivacySettings, useUpdatePrivacySettings } from '@/hooks/use-user';
 import * as Haptics from 'expo-haptics';
+import { Haptic } from '@/lib/haptic-utils';
 import { useRouter } from 'expo-router';
 import {
   Camera,
@@ -55,13 +56,13 @@ export default function PrivacySettingsScreen() {
   const [editingKey, setEditingKey] = useState<keyof PrivacySettings | null>(null);
 
   const handleToggleReadReceipts = async (value: boolean) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Haptic.impact(Haptics.ImpactFeedbackStyle.Light);
     await updateSettings.mutateAsync({ read_receipts: value });
   };
 
   const handleSelectOption = async (option: string) => {
     if (!editingKey) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Haptic.impact(Haptics.ImpactFeedbackStyle.Medium);
     await updateSettings.mutateAsync({ [editingKey]: option });
     setEditingKey(null);
   };
@@ -79,7 +80,7 @@ export default function PrivacySettingsScreen() {
         showsVerticalScrollIndicator={false}>
         {/* Visibility Section */}
         <View className="border-b border-border/5 px-6 py-6">
-          <Text className="mb-4 text-[12px] font-bold uppercase tracking-wider text-brand">
+          <Text className="font-semibol mb-4 text-[12px] uppercase tracking-wider text-brand">
             Who can see my personal info
           </Text>
 
@@ -116,7 +117,7 @@ export default function PrivacySettingsScreen() {
 
         {/* Messaging Section */}
         <View className="border-b border-border/5 px-6 py-6">
-          <Text className="mb-4 text-[12px] font-bold uppercase tracking-wider text-brand">
+          <Text className="font-semibol mb-4 text-[12px] uppercase tracking-wider text-brand">
             Messaging & Activity
           </Text>
 
@@ -154,7 +155,7 @@ export default function PrivacySettingsScreen() {
 
       {/* Selection Drawer */}
       <Drawer visible={!!editingKey} onClose={() => setEditingKey(null)}>
-        <Text className="mb-6 text-center text-xl font-bold text-foreground">
+        <Text className="font-semibol mb-6 text-center text-xl text-foreground">
           Select Visibility
         </Text>
 

@@ -22,6 +22,7 @@ export function Switch({ checked = false, onCheckedChange, disabled = false }: S
 
   const progress = useSharedValue(checked ? 1 : 0);
   const brandColor = useThemeStore((state) => state.accentColor);
+  const { Haptic } = require('@/lib/haptic-utils');
 
   const inactiveColor = isDark ? '#3f3f46' : '#e4e4e7';
 
@@ -58,7 +59,10 @@ export function Switch({ checked = false, onCheckedChange, disabled = false }: S
   return (
     <Pressable
       disabled={disabled}
-      onPress={() => onCheckedChange?.(!checked)}
+      onPress={() => {
+        Haptic.selection();
+        onCheckedChange?.(!checked);
+      }}
       style={{ opacity: disabled ? 0.5 : 1 }}
       hitSlop={10}>
       <Animated.View

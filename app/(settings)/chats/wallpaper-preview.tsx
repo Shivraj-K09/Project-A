@@ -5,13 +5,7 @@ import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { Check, ChevronLeft, Palette, Plus, Sun } from 'lucide-react-native';
 import React from 'react';
-import {
-  Dimensions,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Dimensions, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import PagerView from 'react-native-pager-view';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useWallpaperPreview } from '@/hooks/use-wallpaper-preview';
@@ -19,8 +13,22 @@ import { DimmingSlider } from '@/components/ui/dimming-slider';
 import { MessageBubble } from '@/components/settings/message-bubble';
 
 const EXTENDED_COLORS = [
-  '#6366f1', '#10b981', '#f59e0b', '#ec4899', '#ef4444', '#3b82f6', '#8b5cf6', '#06b6d4',
-  '#005c4b', '#f43f5e', '#71717a', '#ffffff', '#000000', '#4ade80', '#fbbf24', '#818cf8',
+  '#6366f1',
+  '#10b981',
+  '#f59e0b',
+  '#ec4899',
+  '#ef4444',
+  '#3b82f6',
+  '#8b5cf6',
+  '#06b6d4',
+  '#005c4b',
+  '#f43f5e',
+  '#71717a',
+  '#ffffff',
+  '#000000',
+  '#4ade80',
+  '#fbbf24',
+  '#818cf8',
 ];
 
 export default function WallpaperPreviewScreen() {
@@ -101,7 +109,7 @@ export default function WallpaperPreviewScreen() {
           onPress={handleSetWallpaper}
           disabled={updateSettings.isPending}
           className="rounded-full bg-white px-6 py-2 active:opacity-80 disabled:opacity-50">
-          <Text className="text-[14px] font-bold text-black">
+          <Text className="font-semibol text-[14px] text-black">
             {updateSettings.isPending ? 'Applying...' : 'Apply'}
           </Text>
         </TouchableOpacity>
@@ -110,7 +118,7 @@ export default function WallpaperPreviewScreen() {
       <View className="flex-1 justify-center px-5">
         <View className="gap-5">
           <View className="self-center rounded-2xl border border-white/5 bg-[#1F1F1F] px-4 py-1.5">
-            <Text className="text-[11px] font-bold text-white">Wednesday, October 23</Text>
+            <Text className="font-semibol text-[11px] text-white">Wednesday, October 23</Text>
           </View>
 
           <MessageBubble
@@ -161,7 +169,7 @@ export default function WallpaperPreviewScreen() {
                   className="mr-2 h-3 w-3 rounded-full border border-black/10"
                 />
                 <Text
-                  className={`text-[11px] font-bold ${activeSide === 'left' ? 'text-black' : 'text-white/40'}`}>
+                  className={`font-semibol text-[11px] ${activeSide === 'left' ? 'text-black' : 'text-white/40'}`}>
                   Incoming
                 </Text>
               </TouchableOpacity>
@@ -172,7 +180,7 @@ export default function WallpaperPreviewScreen() {
                 }}
                 className={`flex-1 flex-row items-center justify-center rounded-full py-2 ${activeSide === 'right' ? 'bg-white' : ''}`}>
                 <Text
-                  className={`mr-2 text-[11px] font-bold ${activeSide === 'right' ? 'text-black' : 'text-white/40'}`}>
+                  className={`font-semibol mr-2 text-[11px] ${activeSide === 'right' ? 'text-black' : 'text-white/40'}`}>
                   Outgoing
                 </Text>
                 <View
@@ -230,11 +238,7 @@ export default function WallpaperPreviewScreen() {
 
           <View className="flex-1 flex-row items-center gap-4 px-6">
             <Sun size={15} color="rgba(255,255,255,0.3)" strokeWidth={2.5} />
-            <DimmingSlider
-              value={dimValue}
-              onValueChange={setDimValue}
-              brandColor="#ffffff"
-            />
+            <DimmingSlider value={dimValue} onValueChange={setDimValue} brandColor="#ffffff" />
             <Sun size={18} color="#fff" strokeWidth={2.5} />
           </View>
         </BlurView>

@@ -72,7 +72,7 @@ export default function DeleteAccountScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setIsAlertOpen(false);
     } catch (e) {
-      console.error('[DeleteAccount]', e);
+      if (__DEV__) console.error('[DeleteAccount]', e);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setIsAlertOpen(false);
       setErrorOpen(true);
@@ -119,7 +119,7 @@ export default function DeleteAccountScreen() {
                 <Text className="text-[17px] font-black text-foreground">{item.label}</Text>
                 <X size={14} color="#ef4444" strokeWidth={3} />
               </View>
-              <Text className="mt-1 text-[13px] font-bold text-muted-foreground/90">
+              <Text className="font-semibol mt-1 text-[13px] text-muted-foreground/90">
                 {item.sub}
               </Text>
             </Animated.View>
@@ -136,7 +136,7 @@ export default function DeleteAccountScreen() {
               Please note
             </Text>
           </View>
-          <Text className="text-[14px] font-bold leading-6 text-foreground">
+          <Text className="font-semibol text-[14px] leading-6 text-foreground">
             Details of retention and deletion are in our privacy policy. This action cannot be
             undone from the app.
           </Text>
@@ -148,7 +148,7 @@ export default function DeleteAccountScreen() {
             onPress={() => setIsAlertOpen(true)}
             disabled={isWorking || archiveAccount.isPending}
             className="h-16 rounded-2xl bg-destructive">
-            <Text className="text-[17px] font-bold text-white">Delete my account</Text>
+            <Text className="font-semibol text-[17px] text-white">Delete my account</Text>
           </Button>
 
           <TouchableOpacity

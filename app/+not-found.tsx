@@ -13,7 +13,7 @@ export default function NotFoundScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
       <Stack.Screen options={{ title: 'Oops!', headerShown: false }} />
-      
+
       <View className="flex-1 items-center justify-center px-8">
         {/* Hero Icon */}
         <View className="mb-8 h-24 w-24 items-center justify-center rounded-full bg-brand/10 dark:bg-brand/20">
@@ -23,7 +23,7 @@ export default function NotFoundScreen() {
         </View>
 
         {/* Text Content */}
-        <Text className="mb-3 text-center text-[32px] font-bold tracking-tight text-foreground">
+        <Text className="font-semibol mb-3 text-center text-[32px] tracking-tight text-foreground">
           Page Not Found
         </Text>
         <Text className="mb-10 text-center text-[16px] leading-[22px] text-muted-foreground">
@@ -34,19 +34,16 @@ export default function NotFoundScreen() {
         <Link href="/" asChild>
           <Pressable
             className="w-full flex-row items-center justify-center space-x-2 rounded-2xl bg-brand py-4 active:opacity-90"
-            onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
-          >
+            onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}>
             <ChevronLeft size={20} color="white" strokeWidth={2.5} />
-            <Text className="text-base font-bold text-white">
-              Back to Safety
-            </Text>
+            <Text className="font-semibol text-base text-white">Back to Safety</Text>
           </Pressable>
         </Link>
       </View>
 
       {/* Footer Branding */}
       <View className="items-center pb-6">
-        <Text className="text-[12px] font-bold tracking-widest text-muted-foreground/40 uppercase">
+        <Text className="font-semibol text-[12px] uppercase tracking-widest text-muted-foreground/40">
           Shivraj-K09 • Project-A
         </Text>
       </View>

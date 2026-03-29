@@ -69,10 +69,10 @@ export default function ChangeNumberScreen() {
       // Match country code and set phone number without it
       if (profile.phone_number) {
         // SCALING: Search using normalized digits (stripping '+' from the constant)
-        const match = COUNTRY_CODES.find((c) => 
+        const match = COUNTRY_CODES.find((c) =>
           profile.phone_number?.startsWith(c.code.replace('+', ''))
         );
-        
+
         if (match) {
           const cleanPrefix = match.code.replace('+', '');
           setOldCountry(match);
@@ -112,11 +112,11 @@ export default function ChangeNumberScreen() {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       setIsLoading(true);
-      
+
       // 🛡️ SECURITY: The hook now automatically uses the trusted session email.
       // We no longer pass the email from the client to prevent spam/abuse.
       await requestOtp.mutateAsync();
-      
+
       setCountdown(60);
       toast({ message: 'Verification code sent to your email.', variant: 'success' });
     } catch (err: any) {
@@ -140,7 +140,7 @@ export default function ChangeNumberScreen() {
       // SCALING RESOLUTION: Normalize by removing everything except digits
       const fullPhoneNumber = `${newCountry.code}${cleanNewPhone}`.replace(/\D/g, '');
 
-      console.log('[ChangeNumber] Verifying identity with OTP token...');
+      if (__DEV__) console.log('[ChangeNumber] Verifying identity with OTP token...');
 
       await changeNumber.mutateAsync({
         token: cleanOtp,
@@ -151,7 +151,7 @@ export default function ChangeNumberScreen() {
       toast({ message: 'Phone number updated successfully!', variant: 'success' });
       router.back();
     } catch (err: any) {
-      console.error('[ChangeNumber] Error completing phone change:', err);
+      if (__DEV__) console.error('[ChangeNumber] Error completing phone change:', err);
       toast({ message: err.message || 'Verification failed.', variant: 'error' });
     } finally {
       setIsLoading(false);
@@ -189,7 +189,7 @@ export default function ChangeNumberScreen() {
             {/* Old Number */}
             <View className="mb-6">
               <Label
-                className="mb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-brand"
+                className="font-semibol mb-2 text-[11px] uppercase tracking-[0.1em] text-brand"
                 style={{ color: brandColor }}>
                 Old Phone Number
               </Label>
@@ -210,7 +210,7 @@ export default function ChangeNumberScreen() {
                   value={oldPhone}
                   editable={false}
                   placeholder="Old number"
-                  className="h-14 flex-1 border-0 !bg-transparent px-4 text-[17px] font-bold"
+                  className="font-semibol h-14 flex-1 border-0 !bg-transparent px-4 text-[17px]"
                 />
               </View>
             </View>
@@ -218,7 +218,7 @@ export default function ChangeNumberScreen() {
             {/* New Number */}
             <View>
               <Label
-                className="mb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-brand"
+                className="font-semibol mb-2 text-[11px] uppercase tracking-[0.1em] text-brand"
                 style={{ color: brandColor }}>
                 New Phone Number
               </Label>
@@ -245,7 +245,7 @@ export default function ChangeNumberScreen() {
                   placeholder="New number"
                   keyboardType="phone-pad"
                   maxLength={newCountry.max}
-                  className="h-14 flex-1 border-0 !bg-transparent px-4 text-[17px] font-bold"
+                  className="font-semibol h-14 flex-1 border-0 !bg-transparent px-4 text-[17px]"
                 />
               </View>
             </View>
@@ -259,7 +259,7 @@ export default function ChangeNumberScreen() {
 
             {/* Email Field */}
             <View className="mb-6">
-              <Label className="mb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-brand">
+              <Label className="font-semibol mb-2 text-[11px] uppercase tracking-[0.1em] text-brand">
                 Registered Email
               </Label>
               <Input
@@ -269,13 +269,13 @@ export default function ChangeNumberScreen() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 style={{ borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }}
-                className="h-14 rounded-2xl border-[1.5px] bg-muted/20 px-4 text-[17px] font-bold opacity-60"
+                className="font-semibol h-14 rounded-2xl border-[1.5px] bg-muted/20 px-4 text-[17px] opacity-60"
               />
             </View>
 
             {/* OTP Field */}
             <View>
-              <Label className="mb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-brand">
+              <Label className="font-semibol mb-2 text-[11px] uppercase tracking-[0.1em] text-brand">
                 Email OTP Code
               </Label>
               <View className="flex-row items-center gap-3">
@@ -288,7 +288,7 @@ export default function ChangeNumberScreen() {
                     maxLength={6}
                     style={{ borderColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)' }}
                     className={cn(
-                      'h-14 rounded-2xl border-[1.5px] bg-muted/5 px-4 text-[17px] font-bold',
+                      'font-semibol h-14 rounded-2xl border-[1.5px] bg-muted/5 px-4 text-[17px]',
                       otp.length > 0 && 'tracking-[0.5em]'
                     )}
                   />
@@ -301,7 +301,7 @@ export default function ChangeNumberScreen() {
                     backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
                   }}>
                   <Text
-                    className="text-[14px] font-bold"
+                    className="font-semibol text-[14px]"
                     style={{ color: isEmailValid && countdown === 0 ? brandColor : '#71717a' }}>
                     {countdown > 0 ? `${countdown}s` : 'Send'}
                   </Text>
@@ -339,7 +339,7 @@ export default function ChangeNumberScreen() {
             <View className="flex-row items-center">
               <Text
                 className={cn(
-                  'text-[16px] font-bold',
+                  'font-semibol text-[16px]',
                   isFormValid ? 'text-white' : 'text-muted-foreground'
                 )}>
                 Confirm Change
@@ -357,7 +357,7 @@ export default function ChangeNumberScreen() {
             <TouchableOpacity onPress={() => setActivePicker(null)}>
               <X size={24} color={isDark ? '#e4e4e7' : '#18181b'} />
             </TouchableOpacity>
-            <Text className="flex-1 text-center text-lg font-bold">Select Country</Text>
+            <Text className="font-semibol flex-1 text-center text-lg">Select Country</Text>
             <View className="w-6" />
           </View>
 

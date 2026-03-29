@@ -60,16 +60,12 @@ export function InlinePicker({
   return (
     <View className={cn('gap-3', className)}>
       {label && (
-        <Text className="ml-1 text-xs font-bold uppercase tracking-wider text-foreground">
+        <Text className="font-semibol ml-1 text-xs uppercase tracking-wider text-foreground">
           {label}
         </Text>
       )}
 
-      <View 
-        ref={triggerRef} 
-        collapsable={false}
-        className="relative"
-      >
+      <View ref={triggerRef} collapsable={false} className="relative">
         {/* Trigger */}
         <TouchableOpacity
           activeOpacity={0.7}
@@ -86,7 +82,9 @@ export function InlinePicker({
                   className: 'text-foreground',
                   strokeWidth: 2.5,
                 })}
-                <Text className="text-base font-bold text-foreground">{selectedOption.label}</Text>
+                <Text className="font-semibol text-base text-foreground">
+                  {selectedOption.label}
+                </Text>
               </>
             ) : (
               <Text className="text-base text-muted-foreground">{placeholder}</Text>
@@ -105,23 +103,21 @@ export function InlinePicker({
               onPress={() => setIsOpen(false)}
               className="z-[100] bg-transparent"
             />
-            
-            <View 
-              style={{ 
-                position: 'absolute', 
-                top: layout.y + layout.height, 
-                left: layout.x, 
+
+            <View
+              style={{
+                position: 'absolute',
+                top: layout.y + layout.height,
+                left: layout.x,
                 width: layout.width,
                 zIndex: 1000,
               }}
-              pointerEvents="box-none"
-            >
+              pointerEvents="box-none">
               <Animated.View
                 entering={FadeIn.duration(200)}
                 exiting={FadeOut.duration(150)}
                 className="rounded-b-lg border-x border-b border-border bg-background p-1 shadow-xl"
-                style={{ marginTop: -1 }}
-              >
+                style={{ marginTop: -1 }}>
                 <View className="gap-0.5">
                   {options.map((opt) => {
                     const isSelected = value === opt.value;

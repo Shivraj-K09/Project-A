@@ -65,7 +65,7 @@ export default function NetworkDiagnosticScreen() {
           }));
         }
       } catch (e) {
-        console.error('Initial check failed:', e);
+        if (__DEV__) console.error('Initial check failed:', e);
       }
     };
 
@@ -164,11 +164,15 @@ export default function NetworkDiagnosticScreen() {
       await new Promise((resolve) => setTimeout(resolve, 800));
       setProgress(100);
     } catch (err) {
-      console.error('Diagnostic Error:', err);
+      if (__DEV__) console.error('Diagnostic Error:', err);
     } finally {
       setIsTestRun(false);
     }
   };
+
+  const innerPulseStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: corePulse.value }],
+  }));
 
   return (
     <View className="flex-1 bg-background">
@@ -187,11 +191,8 @@ export default function NetworkDiagnosticScreen() {
 
           <View className="absolute inset-0 items-center justify-center">
             <Animated.View
-              style={[
-                { shadowColor: brandColor },
-                useAnimatedStyle(() => ({ transform: [{ scale: corePulse.value }] })),
-              ]}
-              className="h-24 w-24 items-center justify-center rounded-full border border-brand/40 bg-background shadow-2xl elevation-10 shadow-brand/60">
+              style={[{ shadowColor: brandColor }, innerPulseStyle]}
+              className="elevation-10 h-24 w-24 items-center justify-center rounded-full border border-brand/40 bg-background shadow-2xl shadow-brand/60">
               <Activity size={32} color={brandColor} strokeWidth={2.5} />
             </Animated.View>
           </View>
@@ -323,14 +324,8 @@ const RadarSweep = ({ color, rotation, idlePulse, sweepOpacity, isTestRun }: any
           className="absolute border"
         />
       ))}
-      <View
-        style={{ backgroundColor: color }}
-        className="absolute h-px w-[240px] opacity-10"
-      />
-      <View
-        style={{ backgroundColor: color }}
-        className="absolute h-[240px] w-px opacity-10"
-      />
+      <View style={{ backgroundColor: color }} className="absolute h-px w-[240px] opacity-10" />
+      <View style={{ backgroundColor: color }} className="absolute h-[240px] w-px opacity-10" />
       <Animated.View
         style={[sweepStyle]}
         className="absolute h-[240px] w-[240px] items-center justify-center">
@@ -379,7 +374,7 @@ const StatusCard = memo(({ icon: Icon, label, status, sub, brandColor, active }:
       <Text className="mt-0.5 text-[14px] font-black text-foreground" numberOfLines={1}>
         {status}
       </Text>
-      <Text className="mt-1 text-[10px] font-bold text-muted-foreground/60" numberOfLines={1}>
+      <Text className="font-semibol mt-1 text-[10px] text-muted-foreground/60" numberOfLines={1}>
         {sub}
       </Text>
     </Animated.View>

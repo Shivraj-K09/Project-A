@@ -33,7 +33,7 @@ export async function getAppLockEnabled() {
 
     return false;
   } catch (err) {
-    console.error('[AppLock] getEnabled error:', err);
+    if (__DEV__) console.error('[AppLock] getEnabled error:', err);
     return false;
   }
 }
@@ -49,7 +49,7 @@ export async function setAppLockEnabled(enabled: boolean) {
     }
     listeners.forEach((listener) => listener(enabled));
   } catch (err) {
-    console.error('[AppLock] Failed to save setting:', err);
+    if (__DEV__) console.error('[AppLock] Failed to save setting:', err);
   }
 }
 

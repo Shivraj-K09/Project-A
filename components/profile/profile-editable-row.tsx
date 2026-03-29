@@ -3,8 +3,13 @@ import { useAppTheme } from '@/store/theme-store';
 import dayjs from 'dayjs';
 import { Check, ChevronRight, Eye, EyeOff, X } from 'lucide-react-native';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { TextInput, TouchableOpacity, View, Keyboard } from 'react-native';
 import DateTimePicker from 'react-native-ui-datepicker';
+import { SETTINGS_MENU_ITEM_CLASS } from '@/lib/settings-ui';
+import { cn } from '@/lib/utils';
+import { Drawer } from '@/components/ui/drawer';
+import { Haptic } from '@/lib/haptic-utils';
+import * as Haptics from 'expo-haptics';
 
 const getDatePickerStyles = (isDark: boolean, brandColor: string) => ({
   day_label: { color: isDark ? '#e4e4e7' : '#18181b' },
@@ -28,11 +33,16 @@ interface ProfileRowProps {
   editable?: boolean;
   onSave?: (newVal: string) => void;
   placeholder?: string;
-  type?: 'text' | 'date';
+  type?: 'text' | 'date' | 'bio';
   isLast?: boolean;
   isSensitive?: boolean;
+  maxLength?: number;
 }
 
+/**
+ * 🛠️ Profile Editable Row (Matched to SettingsRow style)
+ * Supports Drawer for both Dates and Bio (RE-LABELED AS BIO).
+ */
 export const ProfileEditableRow = React.memo(
   ({
     icon: Icon,
@@ -42,14 +52,15 @@ export const ProfileEditableRow = React.memo(
     onSave,
     placeholder = 'Not set',
     type = 'text',
-    isLast = false,
     isSensitive = false,
+    maxLength = 150,
   }: ProfileRowProps) => {
     const { brandColor, isDark } = useAppTheme();
 
     const [isEditing, setIsEditing] = useState(false);
     const [localValue, setLocalValue] = useState(value || '');
     const [showDatePicker, setShowDatePicker] = useState(false);
+    const [showBioDrawer, setShowBioDrawer] = useState(false);
     const [isVisible, setIsVisible] = useState(!isSensitive);
     const isMounted = useRef(true);
 
@@ -65,19 +76,40 @@ export const ProfileEditableRow = React.memo(
     }, [value, isEditing]);
 
     const handleSave = () => {
+      Keyboard.dismiss();
+      Haptic.notification(Haptics.NotificationFeedbackType.Success);
+
       if (localValue !== (value || '') && onSave) onSave(localValue);
-      if (isMounted.current) setIsEditing(false);
+      if (isMounted.current) {
+        setIsEditing(false);
+        setShowBioDrawer(false);
+      }
     };
 
     const handleCancel = () => {
+      Haptic.impact(Haptics.ImpactFeedbackStyle.Light);
       setLocalValue(value || '');
-      if (isMounted.current) setIsEditing(false);
+      if (isMounted.current) {
+        setIsEditing(false);
+        setShowBioDrawer(false);
+      }
     };
 
     const openEditor = () => {
       if (!editable) return;
-      setIsEditing(true);
-      if (type === 'date') setShowDatePicker(true);
+      Haptic.selection();
+      if (type === 'date') {
+        setShowDatePicker(true);
+      } else if (type === 'bio' || title === 'Bio' || title === 'Biography') {
+        setShowBioDrawer(true);
+      } else {
+        setIsEditing(true);
+      }
+    };
+
+    const toggleVisibility = () => {
+      Haptic.selection();
+      setIsVisible(!isVisible);
     };
 
     const pickerStyles = useMemo(
@@ -85,144 +117,181 @@ export const ProfileEditableRow = React.memo(
       [isDark, brandColor]
     );
 
+    const isBio = title === 'Bio' || title === 'Biography';
+
     return (
-      <View className={`w-full ${!isLast ? 'border-b border-border/5' : ''}`}>
+      <View className="w-full">
         {!isEditing ? (
           <TouchableOpacity
-            activeOpacity={editable ? 0.6 : 1}
+            activeOpacity={editable ? 0.7 : 1}
             onPress={openEditor}
-            className="flex-row items-center px-3 py-4">
-            <View className="mr-4 w-8 items-center">
+            disabled={!editable}
+            className={cn(SETTINGS_MENU_ITEM_CLASS)}>
+            {/* Left: Icon Container */}
+            <View className="mr-3.5 h-9 w-9 items-center justify-center rounded-lg bg-brand/5">
               <Icon size={18} color={brandColor} strokeWidth={2} />
             </View>
 
-            <View className="flex-1">
-              <View className="flex-row items-center justify-between">
-                <View className="flex-1">
-                  <Text className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
-                    {title}
-                  </Text>
-                  <Text className="text-[16px] font-semibold text-foreground">
-                    {!isVisible ? '••••••••••••' : localValue || placeholder}
-                  </Text>
-                </View>
+            {/* Middle: Labels */}
+            <View className="mr-3 flex-1">
+              <Text numberOfLines={1} className="text-[14px] font-semibold text-foreground">
+                {title}
+              </Text>
+              <Text
+                numberOfLines={isBio ? 2 : 1}
+                className="mt-0.5 text-[11px] font-medium text-muted-foreground">
+                {!isVisible ? '••••••••••••' : localValue || placeholder}
+              </Text>
+            </View>
 
-                {isSensitive && (
-                  <TouchableOpacity
-                    onPress={() => setIsVisible(!isVisible)}
-                    className="mr-3 h-8 w-8 items-center justify-center rounded-lg bg-brand/10"
-                    activeOpacity={0.7}>
-                    {isVisible ? (
-                      <EyeOff size={16} color={brandColor} strokeWidth={2} />
-                    ) : (
-                      <Eye size={16} color={brandColor} strokeWidth={2} />
-                    )}
-                  </TouchableOpacity>
-                )}
-
-                {editable && (
-                  <ChevronRight size={14} color={isDark ? '#27272a' : '#e5e5e5'} strokeWidth={2} />
-                )}
-              </View>
+            {/* Right: Indicators */}
+            <View className="flex-row items-center justify-end">
+              {isSensitive && (
+                <TouchableOpacity
+                  onPress={toggleVisibility}
+                  className="mr-3 h-8 w-8 items-center justify-center rounded-lg bg-brand/10"
+                  activeOpacity={0.7}>
+                  {isVisible ? (
+                    <EyeOff size={14} color={brandColor} strokeWidth={2} />
+                  ) : (
+                    <Eye size={14} color={brandColor} strokeWidth={2} />
+                  )}
+                </TouchableOpacity>
+              )}
+              {editable && (
+                <ChevronRight
+                  size={14}
+                  color={brandColor}
+                  strokeWidth={3}
+                  style={{ opacity: 0.8 }}
+                />
+              )}
             </View>
           </TouchableOpacity>
         ) : (
-          <View className="flex-row items-start px-3 py-4">
-            <View className="mr-4 w-8 items-center pt-1">
+          <View className={cn(SETTINGS_MENU_ITEM_CLASS)}>
+            {/* Left: Icon Container */}
+            <View className="mr-3.5 h-9 w-9 items-center justify-center rounded-lg bg-brand/5">
               <Icon size={18} color={brandColor} strokeWidth={2} />
             </View>
 
             <View className="flex-1">
-              <View className="flex-row items-start justify-between">
-                <View className="flex-1">
-                  <Text className="mb-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-brand">
-                    {title}
-                  </Text>
+              <Text className="font-semibol text-[10px] uppercase tracking-wider text-brand">
+                Editing {title}
+              </Text>
+              <TextInput
+                className="mt-1 p-0 text-[15px] font-semibold text-foreground"
+                style={{
+                  color: isDark ? '#ffffff' : '#0a0a0a',
+                  minHeight: 20,
+                  textAlignVertical: 'top',
+                }}
+                value={localValue}
+                onChangeText={setLocalValue}
+                placeholder={placeholder}
+                placeholderTextColor={isDark ? '#3f3f46' : '#d4d4d8'}
+                autoFocus
+                returnKeyType="done"
+                onSubmitEditing={handleSave}
+                cursorColor={brandColor}
+              />
+            </View>
 
-                  {type === 'text' && (
-                    <TextInput
-                      className="m-0 p-0 text-[16px] font-semibold text-foreground"
-                      style={{
-                        color: isDark ? '#ffffff' : '#0a0a0a',
-                        minHeight: title === 'Bio' ? 80 : 24,
-                        textAlignVertical: 'top',
-                      }}
-                      value={localValue}
-                      onChangeText={setLocalValue}
-                      placeholder={placeholder}
-                      placeholderTextColor={isDark ? '#27272a' : '#d4d4d8'}
-                      autoFocus
-                      multiline={title === 'Bio'}
-                      numberOfLines={title === 'Bio' ? 4 : 1}
-                      returnKeyType={title === 'Bio' ? 'default' : 'done'}
-                      onSubmitEditing={title === 'Bio' ? undefined : handleSave}
-                      cursorColor={brandColor}
-                      onBlur={handleSave}
-                    />
-                  )}
-                </View>
-
-                <View className="ml-2 flex-row gap-3 pt-0.5">
-                  <TouchableOpacity onPress={handleCancel} hitSlop={10}>
-                    <X size={18} color={isDark ? '#71717a' : '#a1a1aa'} strokeWidth={2} />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={handleSave} hitSlop={10}>
-                    <Check size={18} color={brandColor} strokeWidth={3} />
-                  </TouchableOpacity>
-                </View>
-              </View>
+            <View className="ml-2 flex-row gap-3 pt-0.5">
+              <TouchableOpacity
+                onPress={handleCancel}
+                hitSlop={10}
+                className="h-8 w-8 items-center justify-center rounded-lg bg-muted/10">
+                <X size={16} color={isDark ? '#71717a' : '#a1a1aa'} strokeWidth={2} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleSave}
+                hitSlop={10}
+                className="h-8 w-8 items-center justify-center rounded-lg bg-brand/10">
+                <Check size={16} color={brandColor} strokeWidth={3} />
+              </TouchableOpacity>
             </View>
           </View>
         )}
 
-        <Modal
+        {/* Date Picker Drawer */}
+        <Drawer
           visible={showDatePicker}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={() => {
-            setShowDatePicker(false);
-            setIsEditing(false);
-          }}>
-          <TouchableWithoutFeedback
-            onPress={() => {
-              setShowDatePicker(false);
-              setIsEditing(false);
-            }}>
-            <View className="flex-1 justify-end bg-black/40">
-              <TouchableWithoutFeedback>
-                <View className="rounded-t-[32px] bg-background p-6 pb-10 shadow-2xl">
-                  <View className="mb-6 h-1 w-12 self-center rounded-full bg-muted" />
-                  <Text className="mb-6 text-center text-lg font-semibold">Select {title}</Text>
-                  <DateTimePicker
-                    mode="single"
-                    date={localValue ? dayjs(localValue).toDate() : dayjs().toDate()}
-                    maxDate={dayjs().toDate()}
-                    onChange={(params) => {
-                      if (params.date) {
-                        const formattedDate = dayjs(params.date).format('YYYY-MM-DD');
-                        setLocalValue(formattedDate);
-                        if (formattedDate !== (value || '') && onSave) onSave(formattedDate);
-                      }
-                      if (isMounted.current) {
-                        setShowDatePicker(false);
-                        setIsEditing(false);
-                      }
-                    }}
-                    styles={pickerStyles}
-                  />
-                  <TouchableOpacity
-                    className="mt-6 w-full items-center rounded-2xl bg-brand py-4 shadow-lg"
-                    onPress={() => {
-                      setShowDatePicker(false);
-                      setIsEditing(false);
-                    }}>
-                    <Text className="text-base font-semibold text-white">Done</Text>
-                  </TouchableOpacity>
-                </View>
-              </TouchableWithoutFeedback>
+          onClose={() => setShowDatePicker(false)}
+          title="Select Date">
+          <View className="pt-2">
+            <DateTimePicker
+              mode="single"
+              date={localValue ? dayjs(localValue).toDate() : dayjs().toDate()}
+              maxDate={dayjs().toDate()}
+              onChange={(params) => {
+                if (params.date) {
+                  const formattedDate = dayjs(params.date).format('YYYY-MM-DD');
+                  setLocalValue(formattedDate);
+                  if (formattedDate !== (value || '') && onSave) onSave(formattedDate);
+                  Haptic.notification(Haptics.NotificationFeedbackType.Success);
+                }
+                setShowDatePicker(false);
+              }}
+              styles={pickerStyles}
+            />
+          </View>
+        </Drawer>
+
+        {/* Bio Drawer - REFINED UX */}
+        <Drawer visible={showBioDrawer} onClose={handleCancel} title={`Edit ${title}`}>
+          <View className="pt-2">
+            <View className="rounded-2xl border border-brand/10 bg-brand/5 p-4">
+              <TextInput
+                className="text-[16px] font-medium leading-6 text-foreground"
+                style={{
+                  color: isDark ? '#ffffff' : '#0a0a0a',
+                  minHeight: 120,
+                  textAlignVertical: 'top',
+                }}
+                value={localValue}
+                onChangeText={(text) => text.length <= maxLength && setLocalValue(text)}
+                placeholder={placeholder}
+                placeholderTextColor={isDark ? '#3f3f46' : '#d4d4d8'}
+                autoFocus
+                multiline
+                numberOfLines={6}
+                cursorColor={brandColor}
+              />
+
+              {/* Character Limit Counter */}
+              <View className="mt-3 flex-row items-center justify-between border-t border-brand/10 pt-3">
+                <Text className="font-semibol text-[11px] uppercase tracking-widest text-muted-foreground/60">
+                  Character Limit
+                </Text>
+                <Text
+                  className={cn(
+                    'text-[12px] font-black',
+                    localValue.length >= maxLength ? 'text-destructive' : 'text-brand'
+                  )}>
+                  {localValue.length}/{maxLength}
+                </Text>
+              </View>
             </View>
-          </TouchableWithoutFeedback>
-        </Modal>
+
+            <View className="mt-6 flex-row gap-3">
+              <TouchableOpacity
+                onPress={handleCancel}
+                className="flex-1 items-center justify-center rounded-xl bg-muted/10 py-4">
+                <Text className="font-semibol text-base text-muted-foreground">Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleSave}
+                disabled={localValue === (value || '')}
+                className={cn(
+                  'flex-1 items-center justify-center rounded-xl py-4',
+                  localValue === (value || '') ? 'bg-brand/20 opacity-50' : 'bg-brand'
+                )}>
+                <Text className="font-semibol text-base text-white">Save Changes</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Drawer>
       </View>
     );
   }

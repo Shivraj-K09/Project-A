@@ -24,17 +24,19 @@ export function useSupportChat() {
   const { 
     messages, 
     setMessages, 
-    sendMessage 
+    sendMessage,
+    isLoading: isMessagesLoading,
+    isRecipientOnline
   } = useSupportMessages(session, recipientKeys, profileRowId);
 
   // 3. Manage File Attachments
   const handleOptimisticMessage = useCallback((msg: SupportMessage) => {
-    setMessages((prev) => [...prev, msg]);
+    setMessages((prev: SupportMessage[]) => [...prev, msg]);
   }, [setMessages]);
 
   const handleConfirmMessage = useCallback((tempId: string, serverId: string, createdAt: string) => {
-    setMessages((prev) =>
-      prev.map((m) =>
+    setMessages((prev: SupportMessage[]) =>
+      prev.map((m: SupportMessage) =>
         m.id === tempId
           ? { ...m, id: serverId, created_at: createdAt, status: 'sent' }
           : m
@@ -43,7 +45,7 @@ export function useSupportChat() {
   }, [setMessages]);
 
   const handleFailMessage = useCallback((tempId: string) => {
-    setMessages((prev) => prev.filter((m) => m.id !== tempId));
+    setMessages((prev: SupportMessage[]) => prev.filter((m: SupportMessage) => m.id !== tempId));
   }, [setMessages]);
 
   const { sendImage } = useSupportUpload(
@@ -61,7 +63,7 @@ export function useSupportChat() {
       await archiveSession();
       setMessages([]);
     } catch (err) {
-      console.error('[Support Chat] End Chat Orchestration Failed:', err);
+      if (__DEV__) console.error('[Support Chat] End Chat Orchestration Failed:', err);
     }
   };
 
@@ -70,8 +72,9 @@ export function useSupportChat() {
     sendMessage, 
     sendImage, 
     endChat, 
-    isLoading, 
-    session 
+    isLoading: isLoading || isMessagesLoading, 
+    session,
+    isRecipientOnline
   };
 }
 

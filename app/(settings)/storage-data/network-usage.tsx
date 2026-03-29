@@ -56,7 +56,7 @@ export default function NetworkUsageScreen() {
         showsVerticalScrollIndicator={false}>
         {/* Overview Information */}
         <View className="border-b border-border/5 px-6 py-6">
-          <Text className="mb-4 text-[12px] font-bold uppercase tracking-wider text-brand">
+          <Text className="font-semibol mb-4 text-[12px] uppercase tracking-wider text-brand">
             Overview
           </Text>
 
@@ -90,7 +90,7 @@ export default function NetworkUsageScreen() {
 
         {/* Detailed Stats Section */}
         <View className="border-b border-border/5 px-6 py-6">
-          <Text className="mb-4 text-[12px] font-bold uppercase tracking-wider text-brand">
+          <Text className="font-semibol mb-4 text-[12px] uppercase tracking-wider text-brand">
             Breakdown
           </Text>
 

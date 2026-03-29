@@ -7,6 +7,9 @@ import {
   Dimensions,
   BackHandler,
   Modal,
+  Platform,
+  ScrollView,
+  Keyboard,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -16,6 +19,8 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import { GestureDetector, Gesture, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Haptic } from '@/lib/haptic-utils';
+import * as Haptics from 'expo-haptics';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -37,10 +42,14 @@ const SPRING_CONFIG = {
 
 export function Drawer({ visible, onClose, children, title }: DrawerProps) {
   const translateY = useSharedValue(SCREEN_HEIGHT);
+  const keyboardOffset = useSharedValue(0);
   const opacity = useSharedValue(0);
   const [mounted, setMounted] = useState(visible);
 
   const closeDrawer = useCallback(() => {
+    Keyboard.dismiss();
+    Haptic.impact(Haptics.ImpactFeedbackStyle.Light);
+
     translateY.value = withTiming(SCREEN_HEIGHT, { duration: 250 }, () => {
       runOnJS(onClose)();
       runOnJS(setMounted)(false);
@@ -48,20 +57,36 @@ export function Drawer({ visible, onClose, children, title }: DrawerProps) {
     opacity.value = withTiming(0, { duration: 250 });
   }, [onClose]);
 
+  // 🛡️ MANUAL KEYBOARD HANDLER
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showListener = Keyboard.addListener(showEvent, (e) => {
+      keyboardOffset.value = e.endCoordinates.height;
+    });
+
+    const hideListener = Keyboard.addListener(hideEvent, () => {
+      keyboardOffset.value = 0;
+    });
+
+    return () => {
+      showListener.remove();
+      hideListener.remove();
+    };
+  }, []);
+
   useEffect(() => {
     if (visible) {
       setMounted(true);
       translateY.value = withSpring(0, SPRING_CONFIG);
       opacity.value = withTiming(1, { duration: 200 });
     } else if (mounted) {
-      translateY.value = withTiming(SCREEN_HEIGHT, { duration: 250 }, () => {
-        runOnJS(setMounted)(false);
-      });
-      opacity.value = withTiming(0, { duration: 250 });
+      closeDrawer();
     }
-  }, [visible]);
+  }, [visible, mounted, closeDrawer]);
 
-  // Handle Android Back Button smoothly
+  // Android Hardware Back
   useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
       if (visible) {
@@ -87,7 +112,7 @@ export function Drawer({ visible, onClose, children, title }: DrawerProps) {
 
   const rDrawerStyle = useAnimatedStyle(() => {
     return {
-      transform: [{ translateY: translateY.value }],
+      transform: [{ translateY: translateY.value - keyboardOffset.value }],
     };
   });
 
@@ -98,29 +123,45 @@ export function Drawer({ visible, onClose, children, title }: DrawerProps) {
   });
 
   return (
-    <Modal visible={mounted} transparent animationType="none" onRequestClose={closeDrawer}>
+    <Modal
+      visible={mounted}
+      transparent
+      animationType="none"
+      onRequestClose={closeDrawer}
+      statusBarTranslucent={true}>
       <GestureHandlerRootView style={StyleSheet.absoluteFill}>
-        <TouchableWithoutFeedback onPress={closeDrawer}>
-          <Animated.View className="flex-1 bg-background/60" style={rBackdropStyle} />
-        </TouchableWithoutFeedback>
+        {/* Backdrop Layer */}
+        <View style={StyleSheet.absoluteFill}>
+          <TouchableWithoutFeedback onPress={closeDrawer}>
+            <Animated.View className="flex-1 bg-background/60" style={rBackdropStyle} />
+          </TouchableWithoutFeedback>
+        </View>
 
-        <GestureDetector gesture={gesture}>
-          <Animated.View
-            className="absolute bottom-0 left-0 right-0 rounded-t-[32px] bg-background shadow-2xl"
-            style={[rDrawerStyle, { minHeight: 200 }]}>
-            <View className="items-center py-4">
-              <View className="h-1.5 w-12 rounded-full bg-muted" />
-            </View>
-
-            {title && (
-              <View className="px-6 pb-4">
-                <Text className="text-lg font-bold text-foreground">{title}</Text>
+        <View style={{ flex: 1, justifyContent: 'flex-end' }} pointerEvents="box-none">
+          <GestureDetector gesture={gesture}>
+            <Animated.View
+              className="rounded-t-[32px] bg-background shadow-2xl"
+              style={[rDrawerStyle, { minHeight: 200, maxHeight: SCREEN_HEIGHT * 0.85 }]}>
+              <View className="items-center py-4">
+                <View className="h-1.5 w-12 rounded-full bg-muted" />
               </View>
-            )}
 
-            <View className="px-6 pb-12">{children}</View>
-          </Animated.View>
-        </GestureDetector>
+              {title && (
+                <View className="px-6 pb-4">
+                  <Text className="font-semibol text-lg text-foreground">{title}</Text>
+                </View>
+              )}
+
+              <ScrollView
+                className="px-6 pb-12"
+                contentContainerStyle={{ flexGrow: 0 }}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled">
+                {children}
+              </ScrollView>
+            </Animated.View>
+          </GestureDetector>
+        </View>
       </GestureHandlerRootView>
     </Modal>
   );

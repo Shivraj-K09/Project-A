@@ -1,7 +1,4 @@
-import {
-  AccountReportData,
-  generateReportHTML,
-} from '@/components/account/report-template';
+import { AccountReportData, generateReportHTML } from '@/components/account/report-template';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { useToast } from '@/components/ui/toast';
@@ -89,7 +86,7 @@ export default function RequestAccountInfoScreen() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     } catch (err: any) {
-      console.error('[Export] Generation Failed:', err);
+      if (__DEV__) console.error('[Export] Generation Failed:', err);
       toast({ message: 'Failed to generate PDF. Check connection.', variant: 'error' });
     }
   };
@@ -121,7 +118,7 @@ export default function RequestAccountInfoScreen() {
                 <View className="mr-3 h-9 w-9 items-center justify-center rounded-xl bg-brand/10">
                   <FileText size={18} color={brandColor} strokeWidth={2.5} />
                 </View>
-                <Text className="flex-1 text-[14px] font-bold text-foreground">
+                <Text className="font-semibol flex-1 text-[14px] text-foreground">
                   Your PDF report will be generated instantly for your security.
                 </Text>
               </View>
@@ -154,7 +151,7 @@ export default function RequestAccountInfoScreen() {
 
                 <View className="space-y-4">
                   <View className="flex-row justify-between">
-                    <Text className="text-[14px] font-bold text-muted-foreground">
+                    <Text className="font-semibol text-[14px] text-muted-foreground">
                       Date Requested
                     </Text>
                     <Text className="text-[14px] font-black text-foreground">
@@ -162,7 +159,7 @@ export default function RequestAccountInfoScreen() {
                     </Text>
                   </View>
                   <View className="flex-row justify-between">
-                    <Text className="text-[14px] font-bold text-muted-foreground">Status</Text>
+                    <Text className="font-semibol text-[14px] text-muted-foreground">Status</Text>
                     <Text
                       className="text-[14px] font-black text-brand"
                       style={{ color: brandColor }}>
@@ -191,7 +188,7 @@ export default function RequestAccountInfoScreen() {
                   </View>
                   <View className="flex-1">
                     <Text className="text-[17px] font-black text-foreground">Report Ready</Text>
-                    <Text className="text-[14px] font-bold text-muted-foreground/90">
+                    <Text className="font-semibol text-[14px] text-muted-foreground/90">
                       Secure PDF • 1.2 MB
                     </Text>
                   </View>
@@ -265,7 +262,7 @@ export default function RequestAccountInfoScreen() {
             entering={FadeIn.duration(200)}
             exiting={FadeOut.duration(200)}
             className="w-full rounded-[24px] bg-background p-8 shadow-2xl">
-            <Text className="text-center text-[20px] font-bold text-foreground">
+            <Text className="font-semibol text-center text-[20px] text-foreground">
               {status === 'pending' ? 'Cancel active request?' : 'Delete report?'}
             </Text>
 
@@ -287,7 +284,7 @@ export default function RequestAccountInfoScreen() {
                 activeOpacity={0.8}
                 onPress={confirmDelete}
                 className="h-12 flex-1 items-center justify-center rounded-xl bg-destructive">
-                <Text className="text-[15px] font-bold text-white">
+                <Text className="font-semibol text-[15px] text-white">
                   {status === 'pending' ? 'Confirm' : 'Delete'}
                 </Text>
               </TouchableOpacity>

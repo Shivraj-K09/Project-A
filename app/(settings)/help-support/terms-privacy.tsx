@@ -20,7 +20,9 @@ export default function TermsPrivacyScreen() {
             className="mb-6 h-20 w-20 items-center justify-center rounded-[24px]">
             <Shield size={40} color={brandColor} strokeWidth={1.5} />
           </View>
-          <Text className="mb-2 text-center text-xl font-bold text-foreground">Legal Center</Text>
+          <Text className="font-semibol mb-2 text-center text-xl text-foreground">
+            Legal Center
+          </Text>
           <Text className="text-center text-[13px] font-medium leading-5 text-muted-foreground/60">
             Terms of Service and Privacy Policy documentation.
           </Text>
@@ -29,7 +31,7 @@ export default function TermsPrivacyScreen() {
         <View className="mt-10 items-center px-8">
           <View className="mb-4 flex-row items-center opacity-20">
             <Info size={16} color={brandColor} className="mr-2" />
-            <Text className="text-sm font-bold text-foreground">In Review</Text>
+            <Text className="font-semibol text-sm text-foreground">In Review</Text>
           </View>
           <View className="mb-6 h-[2px] w-20 rounded-full bg-border/5" />
           <Text className="px-4 text-center text-[14px] font-medium italic leading-6 text-muted-foreground/40">

@@ -7,6 +7,7 @@ import {
   useUserProfile,
 } from '@/hooks/use-user';
 import { COUNTRY_CODES, Country } from '@/lib/countries';
+import { resolveAvatarUrl } from '@/lib/avatar';
 import { supabase } from '@/lib/supabase';
 import { decode } from 'base64-arraybuffer';
 import Constants from 'expo-constants';
@@ -33,6 +34,7 @@ export function usePhoneSetup() {
   const [avatarUri, setAvatarUri] = useState<string | null>(
     user?.user_metadata?.avatar_url ?? null
   );
+  const [avatarStoragePath, setAvatarStoragePath] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   const usernameCheckTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -144,12 +146,10 @@ export function usePhoneSetup() {
             upsert: true,
           });
         if (uploadError) throw uploadError;
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from('avatars').getPublicUrl(filePath);
-        setAvatarUri(publicUrl);
+        setAvatarStoragePath(filePath);
+        setAvatarUri((await resolveAvatarUrl(filePath)) ?? asset.uri);
       } catch (err) {
-        console.error('Avatar upload error:', err);
+        if (__DEV__) console.error('Avatar upload error:', err);
       } finally {
         setIsUploadingAvatar(false);
       }
@@ -208,18 +208,27 @@ export function usePhoneSetup() {
           }
         }
       } catch (permissionError) {
-        console.log('Permission request skipped or failed:', permissionError);
+        if (__DEV__) console.log('Permission request skipped or failed:', permissionError);
       }
 
-      await updateProfile.mutateAsync({
+      const profilePayload: Record<string, string | null> = {
         first_name: name.trim().split(' ')[0] || name.trim(),
         last_name: name.trim().split(' ').slice(1).join(' ') || null,
         username: username.toLowerCase(),
-        email: user.email,
+        email: user.email ?? null,
         phone_number: fullNumber,
         country_code: selectedCountry.code.replace('+', ''),
-        avatar_url: avatarUri ?? user.user_metadata?.avatar_url ?? null,
         provider: user.app_metadata?.provider ?? 'google',
+      };
+
+      if (avatarStoragePath) {
+        profilePayload.avatar_url = avatarStoragePath;
+      } else if (!activeProfile?.id && user.user_metadata?.avatar_url) {
+        profilePayload.avatar_url = user.user_metadata.avatar_url ?? null;
+      }
+
+      await updateProfile.mutateAsync({
+        ...profilePayload,
       });
 
       try {
@@ -228,7 +237,7 @@ export function usePhoneSetup() {
           expo_push_token: expoPushToken,
         });
       } catch (notificationErr) {
-        console.error('Notification settings update failed:', notificationErr);
+        if (__DEV__) console.error('Notification settings update failed:', notificationErr);
       }
 
       router.replace('/');
@@ -244,7 +253,7 @@ export function usePhoneSetup() {
       } else if (err?.message?.includes('username')) {
         setDebouncedUsername(username);
       } else {
-        console.error('Phone setup error:', err);
+        if (__DEV__) console.error('Phone setup error:', err);
         Alert.alert('Error', 'Something went wrong. Please try again.');
       }
     } finally {

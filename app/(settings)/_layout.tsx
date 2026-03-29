@@ -1,4 +1,4 @@
-import { SettingsHeader } from '@/components/settings-header';
+import { Header } from '@/components/shared/header';
 import { useAuth } from '@/contexts/auth-context';
 import {
   SETTINGS_DIRECTORY,
@@ -26,6 +26,7 @@ export default function SettingsLayout() {
         const routeName = route.name;
         const isPreview = routeName === 'chats/wallpaper-preview';
 
+        const isSupportChat = routeName === 'support-management/[id]';
         const headerDestructive = SETTINGS_DIRECTORY.some(
           (e) => e.stackScreenKey === routeName && e.destructive
         );
@@ -33,10 +34,17 @@ export default function SettingsLayout() {
         return {
           headerShown: !isPreview,
           header: () => (
-            <SettingsHeader
-              title={SETTINGS_STACK_ROUTE_TITLES[routeName] || 'Settings'}
+            <Header
+              title={
+                (route.params as any)?.title || 
+                SETTINGS_STACK_ROUTE_TITLES[routeName] || 
+                'Settings'
+              }
+              avatar={(route.params as any)?.avatar}
               icon={SETTINGS_STACK_ROUTE_ICONS[routeName]}
               iconColor={headerDestructive ? '#ef4444' : undefined}
+              showBackButton={true}
+              small={isSupportChat}
             />
           ),
           animation: 'slide_from_right',

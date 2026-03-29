@@ -44,7 +44,7 @@ export const CountryPickerModal = memo(
               className="h-9 w-9 items-center justify-center rounded-full bg-secondary active:opacity-70">
               <X size={18} color={isDark ? '#a1a1aa' : '#52525b'} strokeWidth={2.5} />
             </Pressable>
-            <RNText className="flex-1 text-center text-base font-bold text-foreground">
+            <RNText className="font-semibol flex-1 text-center text-base text-foreground">
               Select Country
             </RNText>
             <View className="w-9" />

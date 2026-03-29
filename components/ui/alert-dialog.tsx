@@ -30,7 +30,7 @@ function AlertDialogOverlay({
         className={cn(
           'absolute bottom-0 left-0 right-0 top-0 z-50 flex items-center justify-center bg-black/45 px-5 py-8',
           Platform.select({
-            web: 'animate-in fade-in-0 fixed',
+            web: 'fixed animate-in fade-in-0',
           }),
           className
         )}
@@ -60,7 +60,7 @@ function AlertDialogContent({
           className={cn(
             'z-50 flex w-full max-w-[calc(100%-2rem)] flex-col rounded-[30px] border border-border/10 bg-card px-6 py-6 shadow-xl shadow-black/10 sm:max-w-lg',
             Platform.select({
-              web: 'animate-in fade-in-0 zoom-in-95 duration-200',
+              web: 'duration-200 animate-in fade-in-0 zoom-in-95',
             }),
             className
           )}
@@ -94,7 +94,7 @@ function AlertDialogTitle({
 }: AlertDialogPrimitive.TitleProps & React.RefAttributes<AlertDialogPrimitive.TitleRef>) {
   return (
     <AlertDialogPrimitive.Title
-      className={cn('text-foreground text-[22px] font-bold tracking-tight', className)}
+      className={cn('font-semibol text-[22px] tracking-tight text-foreground', className)}
       {...props}
     />
   );

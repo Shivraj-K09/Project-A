@@ -24,7 +24,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const validationTimer = React.useRef<ReturnType<typeof setInterval> | null>(null);
 
   const forceSignOut = React.useCallback(async () => {
-    console.log('[Auth] Forcing sign out - session invalid');
+    if (__DEV__) console.log('[Auth] Forcing sign out - session invalid');
     try {
       await supabase.auth.signOut();
     } catch {
@@ -54,7 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await forceSignOut();
       }
     } catch (err) {
-      console.error('[Auth] Session validation error:', err);
+      if (__DEV__) console.error('[Auth] Session validation error:', err);
       await forceSignOut();
     }
   }, [session, forceSignOut]);
@@ -74,7 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } = await supabase.auth.getUser();
 
         if (error || !user) {
-          console.log('[Auth] Cached session invalid - clearing');
+          if (__DEV__) console.log('[Auth] Cached session invalid - clearing');
           try {
             await supabase.auth.signOut();
           } catch {
@@ -146,7 +146,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await supabase.auth.signOut();
     } catch (err) {
-      console.error('[Auth] Supabase signOut error:', err);
+      if (__DEV__) console.error('[Auth] Supabase signOut error:', err);
     }
   }, []);
 

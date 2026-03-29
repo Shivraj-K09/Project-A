@@ -43,7 +43,7 @@ export default function CameraScreen() {
       <View className="flex-1 items-center justify-center bg-black p-6">
         <Text className="mb-6 text-center text-xl text-white">We need camera access</Text>
         <Pressable onPress={requestPermission} className="rounded-full bg-white px-8 py-4">
-          <Text className="font-bold text-black">Grant Permission</Text>
+          <Text className="font-semibol text-black">Grant Permission</Text>
         </Pressable>
       </View>
     );
@@ -60,11 +60,11 @@ export default function CameraScreen() {
           <Pressable
             onPress={() => setCapturedUri(null)}
             className="rounded-full bg-black/50 px-6 py-3">
-            <Text className="font-bold text-white">Retake</Text>
+            <Text className="font-semibol text-white">Retake</Text>
           </Pressable>
 
           <Pressable onPress={() => router.back()} className="rounded-full bg-white px-6 py-3">
-            <Text className="font-bold text-black">Use Photo</Text>
+            <Text className="font-semibol text-black">Use Photo</Text>
           </Pressable>
         </View>
       </View>

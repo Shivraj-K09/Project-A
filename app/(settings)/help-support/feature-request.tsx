@@ -67,7 +67,6 @@ export default function FeatureRequestScreen() {
     }, [refresh])
   );
 
-
   const filteredFeatures = features.filter(
     (f) =>
       f.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -94,7 +93,7 @@ export default function FeatureRequestScreen() {
         {/* NEW SEARCH & PROPOSE */}
         <View className="mb-10 px-6">
           <View className="mb-4 px-2">
-            <Text className="text-xs font-bold uppercase tracking-widest text-brand">
+            <Text className="font-semibol text-xs uppercase tracking-widest text-brand">
               Discovery
             </Text>
           </View>
@@ -130,7 +129,7 @@ export default function FeatureRequestScreen() {
         {/* ROADMAP SECTION */}
         <View className="px-6">
           <View className="mb-6 flex-row items-center justify-between px-2">
-            <Text className="text-xs font-bold uppercase tracking-widest text-brand">
+            <Text className="font-semibol text-xs uppercase tracking-widest text-brand">
               Feature Roadmap
             </Text>
             {isLoading && <ActivityIndicator size="small" color={brandColor} />}
@@ -140,7 +139,9 @@ export default function FeatureRequestScreen() {
             {!isLoading && filteredFeatures.length === 0 ? (
               <View className="items-center py-20 opacity-40">
                 <Sparkles size={40} className="mb-4 text-muted-foreground" />
-                <Text className="text-sm font-bold text-muted-foreground">No features found</Text>
+                <Text className="font-semibol text-sm text-muted-foreground">
+                  No features found
+                </Text>
               </View>
             ) : (
               filteredFeatures.map((item) => {
@@ -226,7 +227,7 @@ const FeatureRow = memo(
         if (isRemoving) delta = type === 'up' ? -1 : 1;
         else if (previousVote !== null) delta = type === 'up' ? 2 : -2;
         else delta = type === 'up' ? 1 : -1;
-        
+
         setLocalVoteCount((prev: number) => prev + delta);
 
         try {
@@ -237,7 +238,7 @@ const FeatureRow = memo(
             isRemoving,
           });
         } catch (err: any) {
-          console.error('Vote Error:', err.message || err);
+          if (__DEV__) console.error('Vote Error:', err.message || err);
           setUserVote(userVoteStatus);
           setLocalVoteCount(vote_count);
           toast({ message: 'Voting unavailable.', variant: 'error' });
@@ -313,7 +314,7 @@ const FeatureRow = memo(
         <View className="flex-1 shrink">
           <View className="mb-1 flex-row items-start justify-between">
             <View className="mr-4 flex-1">
-              <Text className="text-base font-bold text-foreground" selectable={true}>
+              <Text className="font-semibol text-base text-foreground" selectable={true}>
                 {title}
               </Text>
             </View>
@@ -321,7 +322,7 @@ const FeatureRow = memo(
               <Badge
                 variant="secondary"
                 className="mt-0.5 h-5 rounded-md border border-brand/20 bg-brand/10 px-1.5 shadow-none">
-                <Text className="text-[10px] font-bold text-brand">Your Suggestion</Text>
+                <Text className="font-semibol text-[10px] text-brand">Your Suggestion</Text>
               </Badge>
             )}
           </View>
@@ -334,7 +335,7 @@ const FeatureRow = memo(
           <View className="mb-3 flex-row items-center">
             <View className="mr-4 flex-row items-center">
               <View className={cn('mr-1.5 h-2 w-2 rounded-full', dotBg)} />
-              <Text className={cn('text-xs font-bold uppercase tracking-tight', statusClass)}>
+              <Text className={cn('font-semibol text-xs uppercase tracking-tight', statusClass)}>
                 {displayStatus}
               </Text>
             </View>
@@ -342,7 +343,7 @@ const FeatureRow = memo(
             {isReady && (
               <View className="flex-row items-center">
                 <CheckCircle2 size={12} className="mr-1 text-emerald-500" strokeWidth={3} />
-                <Text className="text-xs font-bold uppercase tracking-tight text-emerald-500">
+                <Text className="font-semibol text-xs uppercase tracking-tight text-emerald-500">
                   DONE
                 </Text>
               </View>

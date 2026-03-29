@@ -40,7 +40,7 @@ export default function ProposeFeatureScreen() {
 
   const handleSubmit = useCallback(async () => {
     if (!user || !profile?.id) return;
-    
+
     if (
       !formData.title.trim() ||
       !formData.description.trim() ||
@@ -101,7 +101,7 @@ export default function ProposeFeatureScreen() {
 
             {/* Title Block */}
             <View className="gap-2">
-              <Label className="ml-1 text-xs font-bold uppercase tracking-wider text-foreground">
+              <Label className="font-semibol ml-1 text-xs uppercase tracking-wider text-foreground">
                 Feature Title
               </Label>
               <Input
@@ -112,14 +112,14 @@ export default function ProposeFeatureScreen() {
                 className="h-14 rounded-lg border border-border !bg-transparent px-4 text-base text-foreground"
                 placeholderClassName="text-muted-foreground"
               />
-              <Text className="mr-1 text-right text-[10px] font-bold tabular-nums text-muted-foreground">
+              <Text className="font-semibol mr-1 text-right text-[10px] tabular-nums text-muted-foreground">
                 {formData.title.length} / {TITLE_LIMIT}
               </Text>
             </View>
 
             {/* Description Block */}
             <View className="gap-2">
-              <Label className="ml-1 text-xs font-bold uppercase tracking-wider text-foreground">
+              <Label className="font-semibol ml-1 text-xs uppercase tracking-wider text-foreground">
                 Description
               </Label>
               <Textarea
@@ -130,7 +130,7 @@ export default function ProposeFeatureScreen() {
                 className="min-h-[160px] rounded-lg border border-border !bg-transparent p-4 text-base text-foreground"
                 placeholderClassName="text-muted-foreground"
               />
-              <Text className="mr-1 text-right text-[10px] font-bold tabular-nums text-muted-foreground">
+              <Text className="font-semibol mr-1 text-right text-[10px] tabular-nums text-muted-foreground">
                 {formData.description.length} / {DESC_LIMIT}
               </Text>
             </View>
@@ -141,13 +141,15 @@ export default function ProposeFeatureScreen() {
                 size="lg"
                 className="h-[60px] flex-row items-center justify-center rounded-lg bg-brand active:bg-brand/80"
                 onPress={handleSubmit}
-                disabled={isLoading || !formData.title || !formData.description || !formData.category}>
+                disabled={
+                  isLoading || !formData.title || !formData.description || !formData.category
+                }>
                 {isLoading ? (
                   <Loader2 size={18} color="#fff" className="animate-spin" />
                 ) : (
                   <>
                     <Send size={18} color="#fff" strokeWidth={2.5} className="mr-3" />
-                    <Text className="text-lg font-bold text-white">Propose Feature</Text>
+                    <Text className="font-semibol text-lg text-white">Propose Feature</Text>
                   </>
                 )}
               </Button>

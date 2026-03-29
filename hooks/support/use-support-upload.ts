@@ -17,6 +17,7 @@ export function useSupportUpload(
     if (!session || !profileRowId || recipientKeys.length === 0) return;
 
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    let uploadedPath: string | null = null;
 
     try {
       const result = await DocumentPicker.getDocumentAsync({
@@ -45,6 +46,7 @@ export function useSupportUpload(
 
       // 3. Upload to Supabase Storage
       const fileName = `${session.id}/${tempId}.bin`;
+      uploadedPath = fileName;
       const { error: uploadError } = await supabase.storage
         .from('support_attachments')
         .upload(fileName, blob, { contentType: 'application/octet-stream' });
@@ -72,7 +74,19 @@ export function useSupportUpload(
         onConfirmMessage(tempId, newRow.id, newRow.created_at);
       }
     } catch (err) {
-      console.error('[Send Image] Error:', err);
+      if (__DEV__) console.error('[Send Image] Error:', err);
+
+      // Roll back the uploaded encrypted blob if the message row was never created.
+      if (uploadedPath) {
+        const { error: cleanupError } = await supabase.storage
+          .from('support_attachments')
+          .remove([uploadedPath]);
+
+        if (__DEV__ && cleanupError) {
+          console.warn('[Send Image] Cleanup Error:', cleanupError);
+        }
+      }
+
       onFailMessage(tempId);
     }
   }, [session, profileRowId, recipientKeys, onOptimisticMessage, onConfirmMessage, onFailMessage]);

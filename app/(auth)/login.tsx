@@ -1,18 +1,13 @@
 import { Text } from '@/components/ui/text';
 import { cn } from '@/lib/utils';
+import { Haptic } from '@/lib/haptic-utils';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { ArrowRight, ChevronLeft, Lock, Shield, Zap } from 'lucide-react-native';
 import { useColorScheme } from 'nativewind';
 import React from 'react';
-import {
-  ActivityIndicator,
-  Dimensions,
-  Pressable,
-  Text as RNText,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Dimensions, Pressable, Text as RNText, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GoogleIcon } from '@/components/shared/icons';
@@ -65,7 +60,7 @@ export default function LoginScreen() {
         style={{ top: insets.top + 12, left: 16 }}>
         <Pressable
           onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            Haptic.impact(Haptics.ImpactFeedbackStyle.Light);
             if (router.canGoBack()) {
               router.back();
             } else {
@@ -103,7 +98,7 @@ export default function LoginScreen() {
       <Animated.View
         entering={FadeInDown.delay(150).duration(600).springify()}
         className={cn(
-          'absolute bottom-0 left-0 right-0 rounded-t-[28px] border-t border-border px-6 pt-8 shadow-2xl elevation-16',
+          'elevation-16 absolute bottom-0 left-0 right-0 rounded-t-[28px] border-t border-border px-6 pt-8 shadow-2xl',
           isDark ? 'bg-[#141414] shadow-black/30' : 'bg-white shadow-black/10'
         )}
         style={{
@@ -120,7 +115,7 @@ export default function LoginScreen() {
 
         {/* Heading */}
         <RNText
-          className="mb-2.5 text-[40px] font-bold leading-[46px] tracking-tight text-foreground"
+          className="font-semibol mb-2.5 text-[40px] leading-[46px] tracking-tight text-foreground"
           style={{ letterSpacing: -0.8 }}>
           Let's get{'\n'}you <RNText className="text-brand">in.</RNText>
         </RNText>
@@ -133,12 +128,12 @@ export default function LoginScreen() {
         {/* Google CTA */}
         <Pressable
           onPress={handleGoogleLogin}
-          onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+          onPressIn={() => Haptic.impact(Haptics.ImpactFeedbackStyle.Light)}
           disabled={isLoading}>
           {({ pressed }) => (
             <View
               className={cn(
-                'h-[60px] flex-row items-center rounded-full bg-foreground pl-6 pr-1.5 shadow-2xl elevation-12 transition-transform',
+                'elevation-12 h-[60px] flex-row items-center rounded-full bg-foreground pl-6 pr-1.5 shadow-2xl transition-transform',
                 isDark ? 'shadow-brand/40' : 'shadow-black/20'
               )}
               style={{ transform: [{ scale: pressed ? 0.98 : 1 }] }}>

@@ -1,4 +1,5 @@
 import { useAuth } from '@/contexts/auth-context';
+import { resolveAvatarUrl } from '@/lib/avatar';
 import { supabase } from '@/lib/supabase';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -32,6 +33,8 @@ export async function getAllUsersRowIdsForAuth(authUserId: string): Promise<stri
 }
 
 // ─── Types ─────────────────────────────────────────────────
+// Private self-profile model backed by `public.users`.
+// Do not reuse this type for other users or public profile surfaces.
 export type UserProfile = {
   id: string;
   auth_user_id: string;
@@ -44,6 +47,7 @@ export type UserProfile = {
   avatar_url: string | null;
   provider: string | null;
   role: string;
+  role_id: string | null;
   created_at: string;
   updated_at: string;
   is_deactivated: boolean;
@@ -59,14 +63,26 @@ export type UserProfileDetails = {
 };
 
 // ─── Fetch Profile ─────────────────────────────────────────
-const USER_PROFILE_COLUMNS =
-  'id, auth_user_id, username, first_name, last_name, email, phone_number, country_code, avatar_url, provider, role, created_at, updated_at, is_deactivated, deactivated_at, archived_at, archive_reason' as const;
+// Owner-only column set. This is safe only for the current authenticated user's row.
+const PRIVATE_SELF_PROFILE_COLUMNS =
+  'id, auth_user_id, username, first_name, last_name, email, phone_number, country_code, avatar_url, provider, role, role_id, created_at, updated_at, is_deactivated, deactivated_at, archived_at, archive_reason' as const;
 
-/** Pass auth.users id (JWT sub). Returns the current active profile row, if any. */
-const fetchUserProfile = async (authUserId: string): Promise<UserProfile | null> => {
+async function normalizeOwnProfile(
+  data: UserProfile | null
+): Promise<UserProfile | null> {
+  if (!data) return null;
+
+  return {
+    ...data,
+    avatar_url: await resolveAvatarUrl(data.avatar_url),
+  };
+}
+
+/** Pass auth.users id (JWT sub). Returns the current user's active private profile row, if any. */
+const fetchOwnUserProfile = async (authUserId: string): Promise<UserProfile | null> => {
   const { data, error } = await supabase
     .from('users')
-    .select(USER_PROFILE_COLUMNS)
+    .select(PRIVATE_SELF_PROFILE_COLUMNS)
     .eq('auth_user_id', authUserId)
     .is('archived_at', null)
     .order('created_at', { ascending: false })
@@ -75,13 +91,13 @@ const fetchUserProfile = async (authUserId: string): Promise<UserProfile | null>
 
   if (error) throw error;
   if (!data) return null;
-  return {
+  return await normalizeOwnProfile({
     ...data,
     is_deactivated: data.is_deactivated ?? false,
     deactivated_at: data.deactivated_at ?? null,
     archived_at: data.archived_at ?? null,
     archive_reason: data.archive_reason ?? null,
-  } as UserProfile;
+  } as UserProfile);
 };
 
 // ─── useUserProfile Hook ───────────────────────────────────
@@ -90,9 +106,11 @@ export function useUserProfile() {
 
   return useQuery({
     queryKey: userKeys.profile(user?.id ?? ''),
-    queryFn: () => fetchUserProfile(user!.id),
+    queryFn: () => fetchOwnUserProfile(user!.id),
     enabled: isAuthenticated && !!user?.id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5000,           // Consider data "stale" after 5 seconds
+    refetchInterval: 10000,    // Hard-check every 10 seconds (Polling)
+    refetchOnWindowFocus: true, // Re-check whenever the user comes back to the app
   });
 }
 
@@ -166,6 +184,7 @@ export function useUpdateProfile() {
         id: _id,
         auth_user_id: _authUserId,
         role,
+        role_id,
         created_at,
         updated_at,
         is_deactivated,
@@ -190,19 +209,19 @@ export function useUpdateProfile() {
           .from('users')
           .update(safeData)
           .eq('id', existing.id)
-          .select(USER_PROFILE_COLUMNS)
+          .select(PRIVATE_SELF_PROFILE_COLUMNS)
           .single();
         if (upErr) throw upErr;
-        return updated as UserProfile;
+        return await normalizeOwnProfile(updated as UserProfile);
       }
 
       const { data: inserted, error: inErr } = await supabase
         .from('users')
         .insert({ ...safeData, auth_user_id: user!.id })
-        .select(USER_PROFILE_COLUMNS)
+        .select(PRIVATE_SELF_PROFILE_COLUMNS)
         .single();
       if (inErr) throw inErr;
-      return inserted as UserProfile;
+      return await normalizeOwnProfile(inserted as UserProfile);
     },
     onSuccess: (data) => {
       if (user?.id) {

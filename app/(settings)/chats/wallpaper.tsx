@@ -10,13 +10,7 @@ import { useThemeStore } from '@/store/theme-store';
 import * as Haptics from 'expo-haptics';
 import { Check, ChevronRight, Monitor, Sun } from 'lucide-react-native';
 import React, { useEffect, useState, useCallback } from 'react';
-import {
-  ActivityIndicator,
-  Dimensions,
-  ScrollView,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Dimensions, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WallpaperGrid } from '@/components/settings/wallpaper-grid';
 import { DimmingSlider } from '@/components/ui/dimming-slider';
@@ -65,12 +59,15 @@ export default function ChatWallpaperScreen() {
     }
   }, [updateSettings, toast]);
 
-  const handleWallpaperPress = useCallback((index: number, category: string) => {
-    stableNavigate({
-      pathname: '/chats/wallpaper-preview',
-      params: { index: index.toString(), category: category.toLowerCase() },
-    });
-  }, [stableNavigate]);
+  const handleWallpaperPress = useCallback(
+    (index: number, category: string) => {
+      stableNavigate({
+        pathname: '/chats/wallpaper-preview',
+        params: { index: index.toString(), category: category.toLowerCase() },
+      });
+    },
+    [stableNavigate]
+  );
 
   if (isLoading) {
     return (
@@ -88,28 +85,27 @@ export default function ChatWallpaperScreen() {
         className="flex-1"
         contentContainerStyle={{ paddingTop: 24, paddingBottom: insets.bottom + 40 }}
         showsVerticalScrollIndicator={false}>
-        
-        <WallpaperGrid 
-          category="Bright" 
-          items={WALLPAPERS.bright} 
+        <WallpaperGrid
+          category="Bright"
+          items={WALLPAPERS.bright}
           onPress={handleWallpaperPress}
           columnWidth={COLUMN_WIDTH}
         />
-        <WallpaperGrid 
-          category="Dark" 
-          items={WALLPAPERS.dark} 
+        <WallpaperGrid
+          category="Dark"
+          items={WALLPAPERS.dark}
           onPress={handleWallpaperPress}
           columnWidth={COLUMN_WIDTH}
         />
-        <WallpaperGrid 
-          category="Solid" 
-          items={WALLPAPERS.solid} 
+        <WallpaperGrid
+          category="Solid"
+          items={WALLPAPERS.solid}
           onPress={handleWallpaperPress}
           columnWidth={COLUMN_WIDTH}
         />
 
         <View className="mt-4 border-t border-border/5 px-6 py-6">
-          <Text className="mb-4 text-[12px] font-bold uppercase tracking-wider text-brand">
+          <Text className="font-semibol mb-4 text-[12px] uppercase tracking-wider text-brand">
             Display Settings
           </Text>
 
@@ -159,11 +155,7 @@ export default function ChatWallpaperScreen() {
 
           <View className="flex-row items-center justify-center gap-6 px-10">
             <Sun size={18} color="#71717a" strokeWidth={2} />
-            <DimmingSlider
-              value={localDim}
-              onValueChange={setLocalDim}
-              brandColor={brandColor}
-            />
+            <DimmingSlider value={localDim} onValueChange={setLocalDim} brandColor={brandColor} />
             <Sun size={24} color={brandColor} strokeWidth={2.5} />
           </View>
 

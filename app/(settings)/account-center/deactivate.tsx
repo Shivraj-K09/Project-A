@@ -53,7 +53,7 @@ export default function DeactivateAccountScreen() {
       setConfirmOpen(false);
       // Navigation to onboarding: root _layout only (avoid duplicate replace + remounts)
     } catch (e) {
-      console.error('[Deactivate]', e);
+      if (__DEV__) console.error('[Deactivate]', e);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setConfirmOpen(false);
       setErrorOpen(true);

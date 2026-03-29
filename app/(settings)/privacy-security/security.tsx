@@ -29,14 +29,16 @@ export default function SecuritySettingsScreen() {
 
   // ─── Local State (App Lock) ─────────────────────────────
   const [appLockEnabled, setAppLockEnabled] = useState(false);
-  const [hasBiometrics, setHasBiometrics] = useState<'none' | 'available' | 'not-enrolled' | null>(null);
+  const [hasBiometrics, setHasBiometrics] = useState<'none' | 'available' | 'not-enrolled' | null>(
+    null
+  );
 
   useEffect(() => {
     // Check if device supports Biometrics (FaceID/Fingerprint)
     const checkBiometrics = async () => {
       const compatible = await LocalAuthentication.hasHardwareAsync();
       const enrolled = await LocalAuthentication.isEnrolledAsync();
-      
+
       if (!compatible) {
         setHasBiometrics('none');
       } else if (!enrolled) {
@@ -90,7 +92,7 @@ export default function SecuritySettingsScreen() {
         {/* Local Security Section (Biometrics) */}
         {hasBiometrics !== 'none' && (
           <View className="mb-2 border-b border-border/5 px-6 py-6">
-            <Text className="mb-4 text-[12px] font-bold uppercase tracking-wider text-brand">
+            <Text className="font-semibol mb-4 text-[12px] uppercase tracking-wider text-brand">
               Device Security
             </Text>
 
@@ -108,7 +110,8 @@ export default function SecuritySettingsScreen() {
               ) : (
                 <View className="px-5 py-4">
                   <Text className="text-[14px] leading-6 text-muted-foreground">
-                    Your device supports biometrics, but none are enrolled. Please set up a fingerprint or face scan in your phone settings to use App Lock.
+                    Your device supports biometrics, but none are enrolled. Please set up a
+                    fingerprint or face scan in your phone settings to use App Lock.
                   </Text>
                 </View>
               )}
@@ -118,7 +121,7 @@ export default function SecuritySettingsScreen() {
 
         {/* Account Security Section */}
         <View className="border-b border-border/5 px-6 py-6">
-          <Text className="mb-4 text-[12px] font-bold uppercase tracking-wider text-brand">
+          <Text className="font-semibol mb-4 text-[12px] uppercase tracking-wider text-brand">
             Account Protection
           </Text>
 
